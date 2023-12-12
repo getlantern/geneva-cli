@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"sort"
 
@@ -21,5 +22,8 @@ func main() {
 		sort.Sort(cli.FlagsByName(c.Flags))
 	}
 
-	_ = app.Run(os.Args)
+	err := app.Run(os.Args)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+	}
 }
