@@ -17,6 +17,27 @@ import (
 
 var ErrUnhandledAction = gerrors.New("unhandled action")
 
+func init() {
+	app.Commands = append(app.Commands,
+		&cli.Command{
+			Name:  "dot",
+			Usage: "output the strategy graph as an SVG",
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:    "verbose",
+					Aliases: []string{"v"},
+				},
+				&cli.StringFlag{
+					Name:    "output",
+					Aliases: []string{"o"},
+					Value:   "output.svg",
+				},
+			},
+			ArgsUsage: "STRATEGY",
+			Action:    dot,
+		})
+}
+
 func dot(c *cli.Context) error { //nolint:cyclop
 	input := c.Args().First()
 
