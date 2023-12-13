@@ -57,7 +57,7 @@ func (p *interceptor) Intercept() error {
 		if err != nil {
 			return err
 		}
-		filter = fmt.Sprintf("and ifIdx == %d", idx)
+		filter = fmt.Sprintf("%s and ifIdx == %d", filter, idx)
 
 		logger.Infof("intercepting traffic on %s (idx %d)\n", p.iface, idx)
 	} else {
