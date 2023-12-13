@@ -14,6 +14,34 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+func init() {
+	app.Commands = append(app.Commands,
+		&cli.Command{
+			Name:  "run-pcap",
+			Usage: "Run a PCAP file through a strategy and output the resulting packets in a new PCAP",
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:    "force",
+					Usage:   "Overwrite destination file if it exists",
+					Aliases: []string{"f"},
+				},
+				&cli.StringFlag{
+					Name:     "input",
+					Aliases:  []string{"i"},
+					Value:    "input.pcap",
+					Required: true,
+				},
+				&cli.StringFlag{
+					Name:     "output",
+					Aliases:  []string{"o"},
+					Value:    "output.pcap",
+					Required: true,
+				},
+			},
+			Action: runPcap,
+		})
+}
+
 type FlowTable map[uint32]*Flow
 
 type Flow struct {

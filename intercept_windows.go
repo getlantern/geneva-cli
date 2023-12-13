@@ -1,11 +1,10 @@
 package main
 
-// #include <stdlib.h>
-import "C"
-
 import (
 	"fmt"
-	"os"
+	"net/http"
+	_ "net/http/pprof"
+	"strings"
 	"syscall"
 	"unsafe"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/getlantern/geneva/strategy"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
-	"github.com/urfave/cli/v2"
 	"golang.org/x/sys/windows"
 )
 
@@ -41,10 +39,165 @@ func init() {
 	}
 }
 
+func NewInterceptor(iface string) (Interceptor, error) {
+	return &interceptor{
+		quit:  make(chan struct{}),
+		iface: iface,
+	}, nil
+}
+
+func (p *interceptor) Intercept() error {
+	go func() {
+		logger.Info(http.ListenAndServe("localhost:6060", nil))
+	}()
+
+	filter := "ip and !loopback"
+	if p.iface != "" {
+		idx, err := getAdapter(p.iface)
+		if err != nil {
+			return err
+		}
+		filter = fmt.Sprintf("%s and ifIdx == %d", filter, idx)
+
+		logger.Infof("intercepting traffic on %s (idx %d)\n", p.iface, idx)
+	} else {
+		logger.Info("intercepting traffic on all interfaces")
+	}
+
+	ips := make([]string, 0, len(p.ips))
+	for _, ip := range p.ips {
+		if ip == nil {
+			continue
+		}
+
+		ips = append(ips, fmt.Sprintf("remoteAddr == %s", ip))
+	}
+
+	if len(ips) > 0 {
+		ipFilter := strings.Join(ips, " or ")
+		if filter == "" {
+			filter = ipFilter
+		} else {
+			filter = fmt.Sprintf("%s and (%s)", filter, ipFilter)
+		}
+	}
+
+	logger.Infof("using filter %q\n", filter)
+
+	logger.Info("opening handle to WinDivert")
+	godivert.LoadDLL("WinDivert.dll", "WinDivert.dll")
+
+	winDivert, err := godivert.OpenHandle(
+		filter,
+		godivert.LayerNetwork,
+		godivert.PriorityDefault,
+		godivert.OpenFlagFragments,
+	)
+	if err != nil {
+		return fmt.Errorf("error initializing WinDivert: %v\n", err)
+	}
+
+	defer func() {
+		logger.Info("closing WinDivert handle")
+
+		if err := winDivert.Close(); err != nil {
+			logger.Infof("error closing WinDivert handle: %v\n", err)
+		}
+	}()
+
+	packetChan, err := winDivert.Packets()
+	if err != nil {
+		return fmt.Errorf("error getting packets: %v\n", err)
+	}
+
+	for {
+		select {
+		case pkt := <-packetChan:
+			if err = p.processPacket(winDivert, pkt); err != nil {
+				logger.Error(err)
+			}
+		case <-p.quit:
+			return nil
+		}
+	}
+}
+
+func (p *interceptor) processPacket(winDivert *godivert.WinDivertHandle, pkt *godivert.Packet) error {
+	pkt.VerifyParsed()
+
+	var dir strategy.Direction
+	if pkt.Direction() == godivert.WinDivertDirectionInbound {
+		dir = strategy.DirectionInbound
+	} else {
+		dir = strategy.DirectionOutbound
+	}
+
+	p.statistics.Increment(Intercepted, dir)
+
+	var firstLayer gopacket.LayerType
+
+	switch pkt.IpVersion() {
+	case 4:
+		firstLayer = layers.LayerTypeIPv4
+	case 6:
+		firstLayer = layers.LayerTypeIPv6
+	default:
+		logger.Info("bypassing Geneva for non-IP packet")
+		p.statistics.Increment(Injected, dir)
+		return sendPacket(winDivert, pkt, dir, &p.statistics)
+	}
+
+	gopkt := gopacket.NewPacket(pkt.Raw, firstLayer, gopacket.Default)
+
+	results, err := p.strategy.Apply(gopkt, dir)
+	if err != nil {
+		p.statistics.Increment(Errors, dir)
+		p.statistics.Increment(Injected, dir)
+		if err2 := sendPacket(winDivert, pkt, dir, &p.statistics); err != nil {
+			return fmt.Errorf("failed to send packet after error applying strategy: %w", err2)
+		}
+
+		return fmt.Errorf("error applying strategy: %v\n", err)
+	}
+
+	for i, packet := range results {
+		newPkt := godivert.Packet{
+			Raw: packet.Data(),
+			Addr: &godivert.WinDivertAddress{
+				Timestamp: pkt.Addr.Timestamp + int64(i),
+				Flags:     pkt.Addr.Flags,
+				Data:      pkt.Addr.Data,
+			},
+			PacketLen: uint(len(packet.Data())),
+		}
+
+		newPkt.VerifyParsed()
+
+		if err = sendPacket(winDivert, &newPkt, dir, &p.statistics); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func sendPacket(handle *godivert.WinDivertHandle, pkt *godivert.Packet, dir strategy.Direction, stats *Statistics) error {
+	if sent, err := handle.Send(pkt); err != nil {
+		stats.Increment(Errors, dir)
+		return fmt.Errorf("error sending packet: %v\n", err)
+	} else if sent != pkt.PacketLen {
+		stats.Increment(Errors, dir)
+		return fmt.Errorf("sent %d bytes, but expected %d\n", sent, pkt.PacketLen)
+	}
+
+	stats.Increment(Injected, dir)
+	return nil
+}
+
 func now() int64 {
 	var now uint64
 
-	syscall.Syscall(qpc, 1, uintptr(unsafe.Pointer(&now)), 0, 0)
+	_, _, _ = syscall.Syscall(qpc, 1, uintptr(unsafe.Pointer(&now)), 0, 0)
 
 	return int64(now)
 }
@@ -79,113 +232,4 @@ func getAdapter(iface string) (uint32, error) {
 	}
 
 	return 0, fmt.Errorf("no adapter found")
-}
-
-func doIntercept(strat *strategy.Strategy, iface string) error {
-	idx, err := getAdapter(iface)
-	if err != nil {
-		return cli.Exit(err, 1)
-	}
-
-	fmt.Fprintln(os.Stderr, "opening handle to WinDivert")
-	godivert.LoadDLL("WinDivert.dll", "WinDivert.dll")
-
-	filter := fmt.Sprintf("ifIdx == %d", idx)
-
-	winDivert, err := godivert.OpenHandle(
-		filter,
-		godivert.LayerNetwork,
-		godivert.PriorityDefault,
-		godivert.OpenFlagFragments,
-	)
-	if err != nil {
-		return cli.Exit(fmt.Sprintf("error initializing WinDivert: %v\n", err), 1)
-	}
-
-	fmt.Printf("intercepting traffic on %s (idx %d)\n", iface, idx)
-
-	defer func() {
-		fmt.Fprintln(os.Stderr, "closing handle")
-
-		if err := winDivert.Close(); err != nil {
-			fmt.Fprintf(os.Stderr, "error closing WinDivert handle: %v\n", err)
-		}
-	}()
-
-	packetChan, err := winDivert.Packets()
-	if err != nil {
-		return cli.Exit(fmt.Sprintf("error getting packets: %v\n", err), 1)
-	}
-
-	for pkt := range packetChan {
-		pkt.VerifyParsed()
-
-		var dir strategy.Direction
-		if pkt.Direction() == godivert.WinDivertDirectionInbound {
-			dir = strategy.DirectionInbound
-		} else {
-			dir = strategy.DirectionOutbound
-		}
-
-		var firstLayer gopacket.LayerType
-
-		switch pkt.IpVersion() {
-		case 4:
-			firstLayer = layers.LayerTypeIPv4
-		case 6:
-			firstLayer = layers.LayerTypeIPv6
-		default:
-			fmt.Println("bypassing Geneva for non-IP packet")
-			winDivert.Send(pkt)
-
-			continue
-		}
-
-		gopkt := gopacket.NewPacket(pkt.Raw, firstLayer, gopacket.Default)
-
-		results, err := strat.Apply(gopkt, dir)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error applying strategy: %v\n", err)
-			winDivert.Send(pkt)
-
-			continue
-		}
-
-		sport, _ := pkt.SrcPort()
-		dport, _ := pkt.DstPort()
-		fmt.Printf("%s packet (%s:%d -> %s:%d) produced %d packet(s) from strategy\n",
-			dir,
-			pkt.SrcIP(), sport,
-			pkt.DstIP(), dport,
-			len(results))
-
-		for i, p := range results {
-			newPkt := godivert.Packet{
-				Raw: p.Data(),
-				Addr: &godivert.WinDivertAddress{
-					Timestamp: now(),
-					Flags:     pkt.Addr.Flags,
-					Data:      pkt.Addr.Data,
-				},
-				PacketLen: uint(len(p.Data())),
-			}
-
-			fmt.Printf(
-				"\tinjecting packet %d/%d (len %d)\n",
-				i+1,
-				len(results),
-				len(p.Data()),
-			)
-
-			newPkt.VerifyParsed()
-
-			if sent, err := winDivert.Send(&newPkt); err != nil {
-				fmt.Fprintf(os.Stderr, "error sending packet: %v\n", err)
-			} else if sent != newPkt.PacketLen {
-				fmt.Fprintf(os.Stderr, "sent %d bytes, but expected %d\n", sent, newPkt.PacketLen)
-			}
-		}
-	}
-
-	return nil
 }
