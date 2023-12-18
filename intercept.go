@@ -240,6 +240,7 @@ func init() {
 			},
 			Action: intercept,
 		})
+
 }
 
 func intercept(c *cli.Context) error {

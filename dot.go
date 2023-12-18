@@ -35,7 +35,8 @@ func init() {
 			},
 			ArgsUsage: "STRATEGY",
 			Action:    dot,
-		})
+		}
+	)
 }
 
 func dot(c *cli.Context) error { //nolint:cyclop

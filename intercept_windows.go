@@ -12,6 +12,7 @@ import (
 	"github.com/getlantern/geneva/strategy"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
+	"github.com/urfave/cli/v2"
 	"golang.org/x/sys/windows"
 )
 
@@ -85,7 +86,12 @@ func (p *interceptor) Intercept() error {
 	logger.Infof("using filter %q\n", filter)
 
 	logger.Info("opening handle to WinDivert")
-	godivert.LoadDLL("WinDivert.dll", "WinDivert.dll")
+	godivert.LoadDLL("WinDivert64.dll", "WinDivert32.dll")
+
+	err1 := ListAdapters()
+	if err1 != nil {
+		return fmt.Errorf("No adapters found: %v", err1)
+	}
 
 	winDivert, err := godivert.OpenHandle(
 		filter,
@@ -94,7 +100,7 @@ func (p *interceptor) Intercept() error {
 		godivert.OpenFlagFragments,
 	)
 	if err != nil {
-		return fmt.Errorf("error initializing WinDivert: %v\n", err)
+		return fmt.Errorf("error initializing WinDivert: %v", err)
 	}
 
 	defer func() {
@@ -184,10 +190,10 @@ func (p *interceptor) processPacket(winDivert *godivert.WinDivertHandle, pkt *go
 func sendPacket(handle *godivert.WinDivertHandle, pkt *godivert.Packet, dir strategy.Direction, stats *Statistics) error {
 	if sent, err := handle.Send(pkt); err != nil {
 		stats.Increment(Errors, dir)
-		return fmt.Errorf("error sending packet: %v\n", err)
+		return fmt.Errorf("error sending packet: %v", err)
 	} else if sent != pkt.PacketLen {
 		stats.Increment(Errors, dir)
-		return fmt.Errorf("sent %d bytes, but expected %d\n", sent, pkt.PacketLen)
+		return fmt.Errorf("sent %d bytes, but expected %d", sent, pkt.PacketLen)
 	}
 
 	stats.Increment(Injected, dir)
@@ -204,7 +210,7 @@ func now() int64 {
 
 func getAdapter(iface string) (uint32, error) {
 	// https://docs.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-getadaptersaddresses
-	// "The recommended method of calling the GetAdaptersAddresses function is to pre-allocate a
+	// "The recommended method of calling the GetAi daptersAddresses function is to pre-allocate a
 	// 15KB working buffer pointed to by the AdapterAddresses parameter. On typical computers,
 	// this dramatically reduces the chances that the GetAdaptersAddresses function returns
 	// ERROR_BUFFER_OVERFLOW, which would require calling GetAdaptersAddresses function multiple
@@ -223,6 +229,8 @@ func getAdapter(iface string) (uint32, error) {
 
 	a := &info[0]
 	for a != nil {
+		fmt.Println(windows.BytePtrToString(a.AdapterName))
+		fmt.Println(windows.UTF16PtrToString(a.FriendlyName))
 		if windows.BytePtrToString(a.AdapterName) == iface ||
 			windows.UTF16PtrToString(a.FriendlyName) == iface {
 			return a.IfIndex, nil
@@ -232,4 +240,34 @@ func getAdapter(iface string) (uint32, error) {
 	}
 
 	return 0, fmt.Errorf("no adapter found")
+}
+
+func listAdaptersWrapper(c *cli.Context) error {
+	return ListAdapters()
+}
+
+func ListAdapters() error {
+	bufLenBytes := 15 * 1024
+	info := make(
+		[]windows.IpAdapterAddresses,
+		bufLenBytes/int(unsafe.Sizeof(windows.IpAdapterAddresses{})),
+	)
+	ol := uint32(bufLenBytes)
+
+	err := windows.GetAdaptersAddresses(windows.AF_UNSPEC, 0, 0, &info[0], &ol)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Found Adapters")
+	a := &info[0]
+	for a != nil {
+		fmt.Printf("%s, id=%v\n", windows.UTF16PtrToString(a.FriendlyName), a.IfIndex)
+		fmt.Printf("\t%s\n", windows.BytePtrToString(a.AdapterName))
+
+		a = a.Next
+	}
+
+	return nil
+
 }
