@@ -224,8 +224,8 @@ func getAdapter(iface string) (uint32, error) {
 
 	a := &info[0]
 	for a != nil {
-		fmt.Println(windows.BytePtrToString(a.AdapterName))
-		fmt.Println(windows.UTF16PtrToString(a.FriendlyName))
+		// fmt.Println(windows.BytePtrToString(a.AdapterName))
+		// fmt.Println(windows.UTF16PtrToString(a.FriendlyName))
 		if windows.BytePtrToString(a.AdapterName) == iface ||
 			windows.UTF16PtrToString(a.FriendlyName) == iface {
 			return a.IfIndex, nil
