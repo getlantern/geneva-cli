@@ -1,12 +1,13 @@
 # Windows based Geneva-cli
 
-This is a Geneva-based WinDivert tunnel.
+This is a Geneva-based WinDivert tunnel. Built in Go 1.17
 
 ## Prerequistes
 
 - Be on a Wiondows machine
 - Have Popwershell installed
 - Run Powershell as admin mode
+- All commands are ran in the project directory
 
 ## How to Build
 
