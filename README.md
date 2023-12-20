@@ -8,6 +8,7 @@ This is a Geneva-based WinDivert tunnel. Built in Go 1.17
 - Have Popwershell installed
 - Run Powershell as admin mode
 - All commands are ran in the project directory
+- Go 1.17 is installed
 
 ## How to Build
 
@@ -35,7 +36,7 @@ You can find a list of available interfaces using
 
 ## Notes
 
-This was tested on a Windows 10 machine, if you run this on Windows 11 please let us know how it goes.
+This was tested on a 64-bit Windows 10 machine, if you run this on Windows 11 or on 32-bit please let us know how it goes.
 
 If you run it under LSW I cannot gaurantee it will run, if it does please let us know.
 
