@@ -88,11 +88,6 @@ func (p *interceptor) Intercept() error {
 	logger.Info("opening handle to WinDivert")
 	godivert.LoadDLL("WinDivert64.dll", "WinDivert32.dll")
 
-	err1 := ListAdapters()
-	if err1 != nil {
-		return fmt.Errorf("No adapters found: %v", err1)
-	}
-
 	winDivert, err := godivert.OpenHandle(
 		filter,
 		godivert.LayerNetwork,

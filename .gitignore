@@ -1,3 +1,5 @@
 /geneva-cli
 *.exe
 *.log
+*.sys
+*.dll
