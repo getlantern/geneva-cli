@@ -1,6 +1,6 @@
 # Windows based Geneva-cli
 
-This is a Geneva-based WinDivert tunnel, it takes a geneva strategy and utilizes WinDivert to capture packets, modify them, and re-inject the packet to avoid censorship. One would use this tool when trying to evade censorship and can be ran along side Lantern VPN to further obscure traffic.
+This is a Geneva-based WinDivert tunnel, it takes a Geneva strategy and utilizes WinDivert to capture packets, modify them, and re-inject the packet to avoid censorship. One would use this tool when trying to evade censorship and can be run along side Lantern VPN to further obscure traffic.
 
 [Geneva](https://geneva.cs.umd.edu/) is a genetic algorithm based solution to censorship evasion.
 
