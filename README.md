@@ -59,7 +59,7 @@ COMMANDS:
    intercept      Run a strategy on live network traffic
    list-adapters  Lists the available adapters
    run-pcap       Run a PCAP file through a strategy and output the resulting packets in a new PCAP
-   saved-command  Runs commands from from config file
+   saved-command  Runs commands from config file
    validate       validate that a strategy is well-formed
    help, h        Shows a list of commands or help for one command
 
