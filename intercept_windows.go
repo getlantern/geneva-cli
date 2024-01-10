@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"unsafe"
@@ -85,8 +87,16 @@ func (p *interceptor) Intercept() error {
 
 	logger.Infof("using filter %q\n", filter)
 
+	ex, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("Can't locate dll location")
+	}
+	exPath := filepath.Dir(ex)
+	dll64 := filepath.Join(exPath, "WinDivert64.dll")
+	dll32 := filepath.Join(exPath, "WinDivert32.dll")
+
 	logger.Info("opening handle to WinDivert")
-	godivert.LoadDLL("WinDivert64.dll", "WinDivert32.dll")
+	godivert.LoadDLL(dll64, dll32)
 
 	winDivert, err := godivert.OpenHandle(
 		filter,
