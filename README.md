@@ -23,7 +23,7 @@ First download WinDivert 2.2 [here](https://www.reqrypt.org/windivert.html) and 
 - x64/WinDivert.dll
 
 Rename the x86 dll to WinDivert32.dll
-Rename the x64 dll to WinDivert32.dll
+Rename the x64 dll to WinDivert64.dll
 
 `go build`
 

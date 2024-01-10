@@ -14,10 +14,9 @@ import (
 
 var app = &cli.App{
 	Name:                   "geneva",
-	Usage:					"Genetic Evasion for windows",
+	Usage:                  "Genetic Evasion for windows",
 	UseShortOptionHandling: true,
 	Commands:               make([]*cli.Command, 0, 4),
-
 }
 
 type Command struct {
@@ -37,12 +36,13 @@ func init() {
 
 		ex, err := os.Executable()
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			return err
 		}
 		exPath := filepath.Dir(ex)
 
 		var savedComs savedCommands
-		data, err := ioutil.ReadFile(filepath.Join(exPath,"saved_commands.json"))
+		data, err := ioutil.ReadFile(filepath.Join(exPath, "saved_commands.json"))
 		if err != nil {
 			fmt.Println(err)
 			return err
