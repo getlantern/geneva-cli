@@ -12,7 +12,7 @@ This is a Geneva-based WinDivert tunnel, it takes a Geneva strategy and utilizes
 - Have Powershell installed
 - Run Powershell as admin mode
 - All commands are ran in the project directory
-- Go 1.17 is installed
+- Go 1.20 is installed
 
 ## How to Build
 

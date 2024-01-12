@@ -1,6 +1,6 @@
 module github.com/getlantern/geneva-cli
 
-go 1.17
+go 1.20
 
 require (
 	github.com/Crosse/godivert v0.0.0-20220114171035-c28a0cd613c8

@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -42,7 +41,7 @@ func init() {
 		exPath := filepath.Dir(ex)
 
 		var savedComs savedCommands
-		data, err := ioutil.ReadFile(filepath.Join(exPath, "saved_commands.json"))
+		data, err := os.ReadFile(filepath.Join(exPath, "saved_commands.json"))
 		if err != nil {
 			fmt.Println(err)
 			return err
