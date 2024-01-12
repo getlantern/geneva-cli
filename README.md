@@ -1,24 +1,29 @@
 # Windows based Geneva-cli
 
-This is a Geneva-based WinDivert tunnel. Built in Go 1.17
+This is a Geneva-based WinDivert tunnel, it takes a Geneva strategy and utilizes WinDivert to capture packets, modify them, and re-inject the packet to avoid censorship. One would use this tool when trying to evade censorship and can be run along side Lantern VPN to further obscure traffic.
 
-## Prerequistes
+[Geneva](https://geneva.cs.umd.edu/) is a genetic algorithm based solution to censorship evasion.
 
-- Be on a Wiondows machine
-- Have Popwershell installed
+[WinDivert](https://www.reqrypt.org/windivert.html) is a user-mode packet capture-and-divert package for Windows 10, Windows 11, and Windows Server.
+
+## Prerequisites
+
+- Be on a Windows machine
+- Have Powershell installed
 - Run Powershell as admin mode
 - All commands are ran in the project directory
-- Go 1.17 is installed
+- Go 1.20 is installed
 
 ## How to Build
 
-First download windivert 2.2 [here](https://www.reqrypt.org/windivert.html) and then extract the following files and place them in your geneva-cli folder.
+First download WinDivert 2.2 [here](https://www.reqrypt.org/windivert.html) and then extract the following files and place them directly in your geneva-cli folder, the dlls will need to be renamed.
 - x86/WinDivert32.sys
 - x86/WinDivert.dll
 - x64/WinDivert64.sys
 - x64/WinDivert.dll
 
-Rename the dll's to WinDivert32.dll and WinDivert64.dll respectively.
+Rename the x86 dll to WinDivert32.dll
+Rename the x64 dll to WinDivert64.dll
 
 `go build`
 
@@ -36,14 +41,13 @@ You can find a list of available interfaces using
 
 ## Notes
 
-This was tested on a 64-bit Windows 10 machine, if you run this on Windows 11 or on 32-bit please let us know how it goes.
-
-If you run it under LSW I cannot gaurantee it will run, if it does please let us know.
+This was tested on a 64-bit Windows 10 machine
+Not tested on WSL
 
 ## Help Output
 ```
 NAME:
-   geneva - A new cli application
+   geneva - Genetic Evasion for windows
 
 USAGE:
    geneva-cli.exe [global options] command [command options] [arguments...]
@@ -55,7 +59,7 @@ COMMANDS:
    intercept      Run a strategy on live network traffic
    list-adapters  Lists the available adapters
    run-pcap       Run a PCAP file through a strategy and output the resulting packets in a new PCAP
-   saved-command  Runs commands from from config file
+   saved-command  Runs commands from config file
    validate       validate that a strategy is well-formed
    help, h        Shows a list of commands or help for one command
 

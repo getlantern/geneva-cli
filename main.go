@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"sort"
 
@@ -13,6 +13,7 @@ import (
 
 var app = &cli.App{
 	Name:                   "geneva",
+	Usage:                  "Genetic Evasion for windows",
 	UseShortOptionHandling: true,
 	Commands:               make([]*cli.Command, 0, 4),
 }
@@ -32,8 +33,15 @@ func init() {
 		fmt.Println(app.Name)
 		fmt.Println(c.String("command"))
 
+		ex, err := os.Executable()
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+		exPath := filepath.Dir(ex)
+
 		var savedComs savedCommands
-		data, err := ioutil.ReadFile("saved_commands.json")
+		data, err := os.ReadFile(filepath.Join(exPath, "saved_commands.json"))
 		if err != nil {
 			fmt.Println(err)
 			return err
@@ -82,7 +90,7 @@ func init() {
 
 	app.Commands = append(app.Commands, &cli.Command{
 		Name:   "saved-command",
-		Usage:  "Runs commands from from config file",
+		Usage:  "Runs commands from config file",
 		Action: fromFile,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
