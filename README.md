@@ -28,7 +28,6 @@ Rename the x64 dll to WinDivert64.dll
 `go build`
 
 ## How to run
-
 First you will need a valid Geneva strategy, one is included in s.txt.
 
 Then you can run the program using
@@ -39,10 +38,37 @@ You can find a list of available interfaces using
 
 `.\geneva-cli.exe list-adapters`
 
+## How to test
+
+You can test or rather verify that the intercept mode is running by simply running it with a validated strategy. The output should show that packets are being rerouted. You can monitor your adapter in [WireShark](https://www.wireshark.org/) and you should notice a huge uptick in packets being sent from your adapter.
+
+You can run `go test` to run some unit tests, currently there is only tests for validating strategies.txt
+
+## How to install as service
+
+Open PowerShell in administrator mode before running any commands
+
+### Install Command, in manual mode
+
+```New-Service -Name "Geneva-CLI" -DisplayName "WinGeneva" -Description "Geneva CLI for Windows" -StartupType Manual -BinaryPathName "Path-To-Geneva.exe --args"```
+
+### Start
+
+```Start-Service -Name "Geneva-CLI"```
+
+### Stop
+
+```Stop-Service -Name "Geneva-CLI"```
+
+### Uninstall
+
+```sc.exe Delete "Geneva-CLI"```
+
 ## Notes
 
 This was tested on a 64-bit Windows 10 machine
 Not tested on WSL
+`strategies.txt` contains several validated strategies
 
 ## Help Output
 ```

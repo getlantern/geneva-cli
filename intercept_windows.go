@@ -89,7 +89,7 @@ func (p *interceptor) Intercept() error {
 
 	ex, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("Can't locate dll location")
+		return fmt.Errorf("Can't locate dll")
 	}
 	exPath := filepath.Dir(ex)
 	dll64 := filepath.Join(exPath, "WinDivert64.dll")
@@ -234,8 +234,6 @@ func getAdapter(iface string) (uint32, error) {
 
 	a := &info[0]
 	for a != nil {
-		// fmt.Println(windows.BytePtrToString(a.AdapterName))
-		// fmt.Println(windows.UTF16PtrToString(a.FriendlyName))
 		if windows.BytePtrToString(a.AdapterName) == iface ||
 			windows.UTF16PtrToString(a.FriendlyName) == iface {
 			return a.IfIndex, nil

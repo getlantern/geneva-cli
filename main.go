@@ -58,8 +58,6 @@ func init() {
 		desiredCom := c.String("command")
 
 		for i, s := range savedComs.Items {
-			fmt.Println(i)
-			fmt.Println(s.Name)
 			if s.Name == desiredCom {
 				index = i
 			}
