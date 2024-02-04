@@ -18,27 +18,18 @@ var app = &cli.App{
 	Commands:               make([]*cli.Command, 0, 4),
 }
 
-type Command struct {
-	Name   string   `json:"name"`
-	CmdStr string   `json:"command"`
-	Args   []string `json:"args"`
-}
-
-type savedCommands struct {
-	Items []Command `json:"saved commands"`
-}
-
 func init() {
+	exPath := getExecPath()
+	// os.Stdout, _ = os.OpenFile(os.DevNull, os.O_WRONLY, 0)
+
+	fmt.Println(exPath)
+	os.Chdir(exPath)
+	// wd, _ := os.Getwd()
+	// fmt.Println(wd)
+
 	fromFile := func(c *cli.Context) error {
 		fmt.Println(app.Name)
 		fmt.Println(c.String("command"))
-
-		ex, err := os.Executable()
-		if err != nil {
-			fmt.Println(err)
-			return err
-		}
-		exPath := filepath.Dir(ex)
 
 		var savedComs savedCommands
 		data, err := os.ReadFile(filepath.Join(exPath, "saved_commands.json"))
@@ -50,7 +41,6 @@ func init() {
 		err = json.Unmarshal(data, &savedComs)
 
 		if err != nil {
-			// print out if error is not nil
 			fmt.Println(err)
 		}
 
@@ -114,4 +104,14 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 	}
+}
+
+func getExecPath() string {
+	ex, err := os.Executable()
+	if err != nil {
+		fmt.Println(err)
+		return ""
+	}
+	exPath := filepath.Dir(ex)
+	return exPath
 }

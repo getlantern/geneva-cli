@@ -1,16 +1,16 @@
 { "saved commands":[
         {
-            "name" : "base",
+            "name" : "default",
             "command" : "intercept",
-            "args" : ["-strategyFile", "s.txt", "-interface", "Mullvad"]
+            "args" : ["--strategyFile", "s.txt", "--interface", "Ethernet"]
         },{
             "name" : "ethernet_interface",
             "command" : "intercept",
-            "args" : ["-strategyFile", "s.txt", "-interface", "Ethernet"]
+            "args" : ["--strategyFile", "s.txt", "--interface", "Ethernet", "--service", "start"]
         },{
             "name" : "another",
             "command" : "run-pcap",
-            "args" : ["strategyFile", "s.txt", "output", "output.pcap"]
+            "args" : ["--strategyFile", "s.txt", "output", "output.pcap"]
         }
     ]
 }

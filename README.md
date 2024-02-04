@@ -50,19 +50,19 @@ Open PowerShell in administrator mode before running any commands
 
 ### Install Command, in manual mode
 
-```New-Service -Name "Geneva-CLI" -DisplayName "WinGeneva" -Description "Geneva CLI for Windows" -StartupType Manual -BinaryPathName "Path-To-Geneva.exe --args"```
+```New-Service -Name "Geneva" -DisplayName "WinGeneva" -Description "Geneva for Windows" -StartupType Manual -BinaryPathName "Path-To-Geneva.exe --args"```
 
 ### Start
 
-```Start-Service -Name "Geneva-CLI"```
+```Start-Service -Name "Geneva"```
 
 ### Stop
 
-```Stop-Service -Name "Geneva-CLI"```
+```Stop-Service -Name "Geneva"```
 
 ### Uninstall
 
-```sc.exe Delete "Geneva-CLI"```
+```sc.exe Delete "Geneva"```
 
 ## Notes
 
