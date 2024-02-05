@@ -116,9 +116,5 @@ func bulkValidate(strategyFile string) error {
 		total += 1
 	}
 
-	if failed > 0 {
-		return cli.Exit(fmt.Sprintf("%d/%d of known strategies did not validate", failed, total), 1)
-	}
-
-	return nil
+	return cli.Exit(fmt.Sprintf("%d/%d of known strategies validated (%d failed)", total-failed, total, failed), 1)
 }

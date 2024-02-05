@@ -4,3 +4,8 @@
 *.sys
 *.dll
 scratch.*
+network_adapters.txt
+.vscode
+
+test_out.json
+test_in.json

@@ -19,8 +19,6 @@ var (
 	fakeErrWriter = &bytes.Buffer{}
 )
 
-// End of setup
-
 func _TestValidate(t *testing.T) {
 
 	file, err := os.Open("strategies.txt")
@@ -71,8 +69,6 @@ func TestValidateCLIStrategyStringValid(t *testing.T) {
 
 	defer func() { cli.OsExiter = fakeOsExiter }()
 
-	// HandleExitCoder(nil)
-
 	args := []string{"uh", "validate", "-s", "[TCP:flags:PA]-fragment{tcp:-1:True}-| \\/"}
 
 	_ = app.Run(args)
@@ -95,7 +91,12 @@ func TestValidateCLIStrategyStringInvalid(t *testing.T) {
 
 	defer func() { cli.OsExiter = fakeOsExiter }()
 
+	sout := os.Stdout
+	os.Stdout, _ = os.OpenFile(os.DevNull, os.O_WRONLY, 0)
+
 	args := []string{"uh", "validate", "-s", "[TCP:flags:PA]-fragment{sdgdfghdfghjerdastgtcp:-1:True}-| \\/"}
+
+	os.Stdout = sout
 
 	_ = app.Run(args)
 
@@ -117,8 +118,12 @@ func TestValidateCLIStrategyFileValid(t *testing.T) {
 	}
 
 	defer func() { cli.OsExiter = fakeOsExiter }()
+	sout := os.Stdout
+	os.Stdout, _ = os.OpenFile(os.DevNull, os.O_WRONLY, 0)
 
-	args := []string{"uh", "validate", "-f", "s.txt"}
+	args := []string{"uh", "validate", "-strategyFile", "s.txt"}
+
+	os.Stdout = sout
 
 	_ = app.Run(args)
 

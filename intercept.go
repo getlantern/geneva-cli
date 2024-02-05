@@ -7,7 +7,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -245,6 +244,13 @@ func init() {
 			Action: intercept,
 		})
 
+	app.Commands = append(app.Commands, &cli.Command{
+		Name:   "list-adapters",
+		Usage:  "Lists the available adapters",
+		Action: listAdaptersWrapper,
+		Flags:  []cli.Flag{},
+	})
+
 }
 
 func intercept(c *cli.Context) error {
@@ -253,18 +259,15 @@ func intercept(c *cli.Context) error {
 		return err
 	}
 
-	s_file := filepath.Join(getExecPath(), "s.txt")
-
 	svcConfig := service.Config{
 		Name:        "geneva-proxy",
 		DisplayName: "Geneva proxy",
 		Description: "Geneva proxy",
-		Arguments:   []string{"intercept", "--strategyFile", "s.txt"},
+		Arguments:   []string{"intercept", "-strategyFile", "s.txt"},
 	}
 
 	serviceArgs := []string{}
 	for _, v := range c.FlagNames() {
-		fmt.Println(v)
 		if v != "service" {
 			serviceArgs = append(serviceArgs, v)
 			serviceArgs = append(serviceArgs, c.String(v))
@@ -272,7 +275,6 @@ func intercept(c *cli.Context) error {
 	}
 
 	cmd := c.String("service")
-	fmt.Println(serviceArgs)
 	if len(serviceArgs) > 0 && cmd != "" {
 		svcConfig.Arguments = serviceArgs
 	}
@@ -283,7 +285,7 @@ func intercept(c *cli.Context) error {
 			return cli.Exit(err, 1)
 		}
 
-		com, err := sc.getCommand(saved)
+		com, err := sc.get(saved)
 		if err != nil {
 			return cli.Exit(err, 1)
 		}
@@ -306,8 +308,6 @@ func intercept(c *cli.Context) error {
 		}
 		return nil
 	}
-
-	logger.Infof("Uh: %s", s_file)
 
 	var ips []net.IP
 	var strat string

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -20,47 +19,25 @@ var app = &cli.App{
 
 func init() {
 	exPath := getExecPath()
-	// os.Stdout, _ = os.OpenFile(os.DevNull, os.O_WRONLY, 0)
-
-	fmt.Println(exPath)
 	os.Chdir(exPath)
-	// wd, _ := os.Getwd()
-	// fmt.Println(wd)
 
 	fromFile := func(c *cli.Context) error {
 		fmt.Println(app.Name)
 		fmt.Println(c.String("command"))
 
-		var savedComs savedCommands
-		data, err := os.ReadFile(filepath.Join(exPath, "saved_commands.json"))
+		sc, err := getSavedCommands("saved_commands.json")
 		if err != nil {
-			fmt.Println(err)
-			return err
+			return cli.Exit(fmt.Sprintf("Could not read command file: %v\n", err), 1)
 		}
 
-		err = json.Unmarshal(data, &savedComs)
-
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		index := -1
 		desiredCom := c.String("command")
 
-		for i, s := range savedComs.Items {
-			if s.Name == desiredCom {
-				index = i
-			}
-		}
-
-		if index < 0 {
+		chosenCommand, err := sc.get(desiredCom)
+		if err != nil {
 			fmt.Printf("Stored command named %s is not found", desiredCom)
 			return nil
 		}
 
-		chosenCommand := savedComs.Items[index]
-
-		// fmt.Println(commands)
 		realArgs := append([]string{os.Args[0], chosenCommand.CmdStr}, chosenCommand.Args...)
 		fmt.Println(realArgs)
 
@@ -68,13 +45,6 @@ func init() {
 
 		return nil
 	}
-
-	app.Commands = append(app.Commands, &cli.Command{
-		Name:   "list-adapters",
-		Usage:  "Lists the available adapters",
-		Action: listAdaptersWrapper,
-		Flags:  []cli.Flag{},
-	})
 
 	app.Commands = append(app.Commands, &cli.Command{
 		Name:   "saved-command",

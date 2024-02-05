@@ -27,6 +27,11 @@ Rename the x64 dll to WinDivert64.dll
 
 `go build`
 
+Additionally you can install the program by adding the folder to your powershell path. 
+This will allow you to call with just geneva-cli instead of .\geneva-cli.exe from anywhere. 
+
+Any filepaths you paths should be absolute paths, the working directory will be changed to the executable directory.
+
 ## How to run
 First you will need a valid Geneva strategy, one is included in s.txt.
 
@@ -42,7 +47,7 @@ You can find a list of available interfaces using
 
 You can test or rather verify that the intercept mode is running by simply running it with a validated strategy. The output should show that packets are being rerouted. You can monitor your adapter in [WireShark](https://www.wireshark.org/) and you should notice a huge uptick in packets being sent from your adapter.
 
-You can run `go test` to run some unit tests, currently there is only tests for validating strategies.txt
+You can run `go test -c; .\geneva-cli.test.exe` to run some unit tests, currently there is only tests for validating strategies.txt
 
 ## How to install as service
 
@@ -50,19 +55,20 @@ Open PowerShell in administrator mode before running any commands
 
 ### Install Command, in manual mode
 
-```New-Service -Name "Geneva" -DisplayName "WinGeneva" -Description "Geneva for Windows" -StartupType Manual -BinaryPathName "Path-To-Geneva.exe --args"```
+```.\geneva-cli.exe intercept --service install```
 
 ### Start
 
-```Start-Service -Name "Geneva"```
+```.\geneva-cli.exe intercept --service start --strategyFile <path_to_file>```
+You can specify a strategy, strategy file, a saved command, or nothing to let it run from the default strategy
 
 ### Stop
 
-```Stop-Service -Name "Geneva"```
+```.\geneva-cli.exe intercept --service stop```
 
 ### Uninstall
 
-```sc.exe Delete "Geneva"```
+```.\geneva-cli.exe intercept --service uninstall```
 
 ## Notes
 

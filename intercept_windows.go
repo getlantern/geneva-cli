@@ -40,6 +40,7 @@ func init() {
 	if err := iphlpapi.Load(); err != nil {
 		panic(fmt.Errorf("error loading Iphlpapi.dll"))
 	}
+
 }
 
 func NewInterceptor(iface string) (Interceptor, error) {
@@ -89,7 +90,7 @@ func (p *interceptor) Intercept() error {
 
 	ex, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("Can't locate dll")
+		return fmt.Errorf("can't locate dll")
 	}
 	exPath := filepath.Dir(ex)
 	dll64 := filepath.Join(exPath, "WinDivert64.dll")
@@ -112,13 +113,13 @@ func (p *interceptor) Intercept() error {
 		logger.Info("closing WinDivert handle")
 
 		if err := winDivert.Close(); err != nil {
-			logger.Infof("error closing WinDivert handle: %v\n", err)
+			logger.Infof("error closing WinDivert handle: %v", err)
 		}
 	}()
 
 	packetChan, err := winDivert.Packets()
 	if err != nil {
-		return fmt.Errorf("error getting packets: %v\n", err)
+		return fmt.Errorf("error getting packets: %v", err)
 	}
 
 	for {
@@ -168,7 +169,7 @@ func (p *interceptor) processPacket(winDivert *godivert.WinDivertHandle, pkt *go
 			return fmt.Errorf("failed to send packet after error applying strategy: %w", err2)
 		}
 
-		return fmt.Errorf("error applying strategy: %v\n", err)
+		return fmt.Errorf("error applying strategy: %v", err)
 	}
 
 	for i, packet := range results {
@@ -215,7 +216,7 @@ func now() int64 {
 
 func getAdapter(iface string) (uint32, error) {
 	// https://docs.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-getadaptersaddresses
-	// "The recommended method of calling the GetAi daptersAddresses function is to pre-allocate a
+	// "The recommended method of calling the GetAi adaptersAddresses function is to pre-allocate a
 	// 15KB working buffer pointed to by the AdapterAddresses parameter. On typical computers,
 	// this dramatically reduces the chances that the GetAdaptersAddresses function returns
 	// ERROR_BUFFER_OVERFLOW, which would require calling GetAdaptersAddresses function multiple
