@@ -26,7 +26,13 @@ type Command struct {
 }
 
 type savedCommands struct {
-	Items []Command `json:"saved commands"`
+	Items map[string]Command `json:"saved commands"`
+}
+
+func newSavedCommands() *savedCommands {
+	ret := new(savedCommands)
+	ret.Items = make(map[string]Command)
+	return ret
 }
 
 func getSavedCommands(commandFilepath string) (*savedCommands, error) {
@@ -48,11 +54,11 @@ func getSavedCommands(commandFilepath string) (*savedCommands, error) {
 
 func (sc *savedCommands) get(name string) (Command, error) {
 
-	for _, s := range sc.Items {
-		if s.Name == name {
-			return s, nil
-		}
+	com := sc.Items[name]
+	if com.Name != "" {
+		return com, nil
 	}
+
 	return *new(Command), errors.New("no command found")
 }
 
@@ -70,7 +76,7 @@ func listSavedCommands(c *cli.Context) error {
 }
 
 func (sc *savedCommands) add(newCom Command) {
-	sc.Items = append(sc.Items, newCom)
+	sc.Items[newCom.Name] = newCom
 }
 
 func (sc *savedCommands) save(filePath string) error {

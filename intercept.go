@@ -237,7 +237,11 @@ func init() {
 					Usage: "Control the system service",
 				},
 				&cli.StringFlag{
-					Name:  "saved-command",
+					Name:  "load-command",
+					Usage: "Run a named command from saved_command.json, this overwrites all other options",
+				},
+				&cli.StringFlag{
+					Name:  "save-command",
 					Usage: "Run a named command from saved_command.json, this overwrites all other options",
 				},
 			},
@@ -279,13 +283,13 @@ func intercept(c *cli.Context) error {
 		svcConfig.Arguments = serviceArgs
 	}
 
-	if saved := c.String("saved-command"); saved != "" {
+	if loadCom := c.String("load-command"); loadCom != "" {
 		sc, err := getSavedCommands("saved_commands.json")
 		if err != nil {
 			return cli.Exit(err, 1)
 		}
 
-		com, err := sc.get(saved)
+		com, err := sc.get(loadCom)
 		if err != nil {
 			return cli.Exit(err, 1)
 		}
@@ -293,6 +297,17 @@ func intercept(c *cli.Context) error {
 			return cli.Exit(errors.New("only run intercept command as service"), 1)
 		}
 		svcConfig.Arguments = com.Args
+	}
+
+	if saveCom := c.String("save-command"); saveCom != "" {
+		sc, err := getSavedCommands("saved_commands.json")
+		if err != nil {
+			return cli.Exit(err, 1)
+		}
+
+		newCommand := Command{Name: saveCom, CmdStr: "intercept", Args: svcConfig.Arguments}
+		sc.add(newCommand)
+		sc.save("saved_commands.json")
 	}
 
 	svc, err := service.New(interceptor, &svcConfig)

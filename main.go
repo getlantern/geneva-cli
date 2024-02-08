@@ -47,7 +47,7 @@ func init() {
 	}
 
 	app.Commands = append(app.Commands, &cli.Command{
-		Name:   "saved-command",
+		Name:   "load-command",
 		Usage:  "Runs commands from config file",
 		Action: fromFile,
 		Flags: []cli.Flag{

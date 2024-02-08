@@ -47,7 +47,9 @@ You can find a list of available interfaces using
 
 You can test or rather verify that the intercept mode is running by simply running it with a validated strategy. The output should show that packets are being rerouted. You can monitor your adapter in [WireShark](https://www.wireshark.org/) and you should notice a huge uptick in packets being sent from your adapter.
 
-You can run `go test -c; .\geneva-cli.test.exe` to run some unit tests, currently there is only tests for validating strategies.txt
+You can predict what the wireshark output should look like using the [Geneva documentation](https://github.com/getlantern/geneva?tab=readme-ov-file#strategies-forests-and-action-trees), each strategy will look different. The default strategy will take all incoming tcp packets and split them in half, on wireshark you should twice as many outgoing packets
+
+You can run `go test -c; .\geneva-cli.test.exe` to run unit tests
 
 ## How to install as service
 
@@ -60,7 +62,8 @@ Open PowerShell in administrator mode before running any commands
 ### Start
 
 ```.\geneva-cli.exe intercept --service start --strategyFile <path_to_file>```
-You can specify a strategy, strategy file, a saved command, or nothing to let it run from the default strategy
+You can specify a strategy, strategy file, a saved command, or nothing to let it run from the default strategy (`s.txt`)
+While running the service you can check [Event Viewer](https://learn.microsoft.com/en-us/shows/inside/event-viewer) for output
 
 ### Stop
 

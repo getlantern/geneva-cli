@@ -12,7 +12,7 @@ func TestCreateCommands(t *testing.T) {
 	one := Command{Name: "One", CmdStr: "intercept", Args: []string{"--hey", "you", "guys"}}
 	two := Command{Name: "Two", CmdStr: "intercept", Args: []string{"--wass", "up", "guys"}}
 
-	sc := savedCommands{}
+	sc := newSavedCommands()
 
 	sc.add(one)
 	sc.add(two)
@@ -29,7 +29,7 @@ func TestSaveCommands(t *testing.T) {
 	one := Command{Name: "One", CmdStr: "intercept", Args: []string{"--hey", "you", "guys"}}
 	two := Command{Name: "Two", CmdStr: "intercept", Args: []string{"--wass", "up", "guys"}}
 
-	sc := savedCommands{}
+	sc := newSavedCommands()
 
 	sc.add(one)
 	sc.add(two)
@@ -52,7 +52,7 @@ func TestLoadCommands(t *testing.T) {
 	one := Command{Name: "One", CmdStr: "intercept", Args: []string{"--hey", "you", "guys"}}
 	two := Command{Name: "Two", CmdStr: "intercept", Args: []string{"--wass", "up", "guys"}}
 
-	sc := savedCommands{}
+	sc := newSavedCommands()
 
 	sc.add(one)
 	sc.add(two)
@@ -63,7 +63,7 @@ func TestLoadCommands(t *testing.T) {
 	sc_in, err := getSavedCommands(saveFile)
 	assert.Nil(t, err)
 
-	assert.Equal(t, sc, *sc_in)
+	assert.Equal(t, sc, sc_in)
 	ret, err := sc_in.get("One")
 
 	assert.Nil(t, err)
