@@ -216,8 +216,9 @@ func init() {
 					Usage:   "A Geneva `STRATEGY` to run",
 				},
 				&cli.StringFlag{
-					Name:  "strategyFile",
-					Usage: "Load Geneva strategy from `FILE`",
+					Name:    "strategyFile",
+					Aliases: []string{"f"},
+					Usage:   "Load Geneva strategy from `FILE`",
 				},
 				&cli.StringFlag{
 					Name:  "fromFlashlight",
@@ -238,11 +239,11 @@ func init() {
 				},
 				&cli.StringFlag{
 					Name:  "load-command",
-					Usage: "Run a named command from saved_command.json, this overwrites all other options",
+					Usage: "For service run only, Run a named command from saved_command.json",
 				},
 				&cli.StringFlag{
 					Name:  "save-command",
-					Usage: "Run a named command from saved_command.json, this overwrites all other options",
+					Usage: "Save and give a name to the command used to saved_command.json",
 				},
 			},
 			Action: intercept,
@@ -258,6 +259,21 @@ func init() {
 }
 
 func intercept(c *cli.Context) error {
+
+	checkFlagsMutualEx := func() bool {
+
+		A := c.String("load-command") != ""
+		B := c.String("strategy") != ""
+		C := c.String("strategyFile") != ""
+
+		return !A && !B && C || A && !B && !C || !A && B && !C
+
+	}
+
+	if !checkFlagsMutualEx() {
+		return cli.Exit("Load-command, strategy, and strategyFile are mutually exclusive", 2)
+	}
+
 	interceptor, err := NewInterceptor(c.String("interface"))
 	if err != nil {
 		return err
@@ -271,8 +287,22 @@ func intercept(c *cli.Context) error {
 	}
 
 	serviceArgs := []string{}
+
+	toAdd := func(name string) bool {
+		switch name {
+		case "service", "load-command", "save-command":
+			return false
+		}
+		return true
+	}
+
+	fmt.Println(c.LocalFlagNames())
+	fmt.Println(c.FlagNames())
+	fmt.Println(c.Args())
+
 	for _, v := range c.FlagNames() {
-		if v != "service" {
+
+		if toAdd(v) && len(v) > 1 {
 			serviceArgs = append(serviceArgs, v)
 			serviceArgs = append(serviceArgs, c.String(v))
 		}
@@ -297,17 +327,7 @@ func intercept(c *cli.Context) error {
 			return cli.Exit(errors.New("only run intercept command as service"), 1)
 		}
 		svcConfig.Arguments = com.Args
-	}
 
-	if saveCom := c.String("save-command"); saveCom != "" {
-		sc, err := getSavedCommands("saved_commands.json")
-		if err != nil {
-			return cli.Exit(err, 1)
-		}
-
-		newCommand := Command{Name: saveCom, CmdStr: "intercept", Args: svcConfig.Arguments}
-		sc.add(newCommand)
-		sc.save("saved_commands.json")
 	}
 
 	svc, err := service.New(interceptor, &svcConfig)
@@ -389,6 +409,17 @@ func intercept(c *cli.Context) error {
 			ips = append(ips, net.ParseIP(strings.Split(ip, ":")[0]))
 		}
 		interceptor.SetProxyIPs(ips)
+	}
+
+	if saveCom := c.String("save-command"); saveCom != "" {
+		sc, err := getSavedCommands("saved_commands.json")
+		if err != nil {
+			return cli.Exit(err, 1)
+		}
+
+		newCommand := Command{Name: saveCom, CmdStr: "intercept", Args: serviceArgs}
+		sc.add(newCommand)
+		sc.save("saved_commands.json")
 	}
 
 	logger.Infof("outbound \\/ inbound %q", interceptor.Strategy())
