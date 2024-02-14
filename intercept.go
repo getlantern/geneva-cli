@@ -270,10 +270,6 @@ func intercept(c *cli.Context) error {
 
 	}
 
-	if !checkFlagsMutualEx() {
-		return cli.Exit("Load-command, strategy, and strategyFile are mutually exclusive", 2)
-	}
-
 	interceptor, err := NewInterceptor(c.String("interface"))
 	if err != nil {
 		return err
@@ -296,10 +292,6 @@ func intercept(c *cli.Context) error {
 		return true
 	}
 
-	fmt.Println(c.LocalFlagNames())
-	fmt.Println(c.FlagNames())
-	fmt.Println(c.Args())
-
 	for _, v := range c.FlagNames() {
 
 		if toAdd(v) && len(v) > 1 {
@@ -314,6 +306,11 @@ func intercept(c *cli.Context) error {
 	}
 
 	if loadCom := c.String("load-command"); loadCom != "" {
+
+		if c.String("service") == "" {
+			return cli.Exit(errors.New("load-command option only available for running as a service"), 1)
+		}
+
 		sc, err := getSavedCommands("saved_commands.json")
 		if err != nil {
 			return cli.Exit(err, 1)
@@ -342,6 +339,10 @@ func intercept(c *cli.Context) error {
 			return cli.Exit(err, 1)
 		}
 		return nil
+	}
+
+	if !checkFlagsMutualEx() {
+		return cli.Exit("Load-command, strategy, and strategyFile are mutually exclusive", 2)
 	}
 
 	var ips []net.IP
@@ -457,6 +458,7 @@ func parseProxyFile(proxiesFilepath string) ([]net.IP, string, error) {
 		case "multiplexed":
 			ips = append(ips, net.ParseIP(v.MultiplexedAddr))
 		default:
+			ips = append(ips, net.ParseIP(v.Addr))
 			logger.Warningf("unhandled transport %q\n", v.Addr)
 		}
 	}

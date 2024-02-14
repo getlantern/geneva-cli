@@ -165,8 +165,8 @@ func (p *interceptor) processPacket(winDivert *godivert.WinDivertHandle, pkt *go
 	if err != nil {
 		p.statistics.Increment(Errors, dir)
 		p.statistics.Increment(Injected, dir)
-		if err2 := sendPacket(winDivert, pkt, dir, &p.statistics); err != nil {
-			return fmt.Errorf("failed to send packet after error applying strategy: %w", err2)
+		if err2 := sendPacket(winDivert, pkt, dir, &p.statistics); err2 != nil {
+			return fmt.Errorf("failed to send packet after error applying strategy: %v", err2)
 		}
 
 		return fmt.Errorf("error applying strategy: %v", err)
