@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -21,7 +22,8 @@ var (
 
 func TestValidate(t *testing.T) {
 
-	file, err := os.Open("testdata\\strategies.txt")
+	fi := filepath.Join("testdata", "strategies.txt")
+	file, err := os.Open(fi)
 	assert.Nil(t, err, "Can't open strategies.txt file")
 
 	defer file.Close()
@@ -118,7 +120,9 @@ func TestValidateCLIStrategyFileValid(t *testing.T) {
 	sout := os.Stdout
 	os.Stdout, _ = os.OpenFile(os.DevNull, os.O_WRONLY, 0)
 
-	args := []string{"geneva-cli", "validate", "-strategyFile", "testdata\\s.txt"}
+	fi := filepath.Join("testdata", "s.txt")
+
+	args := []string{"geneva-cli", "validate", "-strategyFile", fi}
 
 	os.Stdout = sout
 
@@ -145,7 +149,8 @@ func TestValidateCLIStrategyBulkValid(t *testing.T) {
 
 	sout := os.Stdout
 	os.Stdout, _ = os.OpenFile(os.DevNull, os.O_WRONLY, 0)
-	args := []string{"geneva-cli", "validate", "-b", "strategies.txt"}
+	fi := filepath.Join("testdata", "strategies.txt")
+	args := []string{"geneva-cli", "validate", "-b", fi}
 
 	_ = app.Run(args)
 

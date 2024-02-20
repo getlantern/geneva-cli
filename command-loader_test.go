@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -21,7 +22,9 @@ func TestCreateCommands(t *testing.T) {
 }
 
 func TestSaveCommands(t *testing.T) {
-	saveFile := "test_out.json"
+
+	saveFile := filepath.Join("testdata", "test_out.json")
+
 	if _, err := os.Stat(saveFile); errors.Is(err, os.ErrNotExist) {
 		os.Remove(saveFile)
 	}
@@ -44,7 +47,8 @@ func TestSaveCommands(t *testing.T) {
 }
 
 func TestLoadCommands(t *testing.T) {
-	saveFile := "test_in.json"
+	saveFile := filepath.Join("testdata", "test_in.json")
+
 	if _, err := os.Stat(saveFile); errors.Is(err, os.ErrNotExist) {
 		os.Remove(saveFile)
 	}
