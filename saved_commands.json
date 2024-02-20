@@ -5,13 +5,19 @@
             "command" : "intercept",
             "args" : ["--strategyFile", "s.txt", "--interface", "Ethernet"]
         },
-        "ethernet_interface":
+    "service":
+        {
+            "name" : "service",
+            "command" : "intercept",
+            "args" : ["--strategyFile", "s.txt", "--interface", "Ethernet"]
+        },
+    "ethernet_interface":
         {
             "name" : "ethernet_interface",
             "command" : "intercept",
             "args" : ["--strategyFile", "s.txt", "--interface", "Ethernet", "--service", "start"]
         },
-        "another": {
+    "another": {
             "name" : "another",
             "command" : "run-pcap",
             "args" : ["--strategyFile", "s.txt", "output", "output.pcap"]

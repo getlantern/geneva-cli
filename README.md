@@ -49,7 +49,7 @@ You can test or rather verify that the intercept mode is running by simply runni
 
 You can predict what the wireshark output should look like using the [Geneva documentation](https://github.com/getlantern/geneva?tab=readme-ov-file#strategies-forests-and-action-trees), each strategy will look different. The default strategy will take all incoming tcp packets and split them in half, on wireshark you should twice as many outgoing packets
 
-You can run `go test -c; .\geneva-cli.test.exe` to run unit tests
+You can run `go test -v` to run unit tests
 
 ## How to install as service
 

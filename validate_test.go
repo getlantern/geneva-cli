@@ -19,13 +19,10 @@ var (
 	fakeErrWriter = &bytes.Buffer{}
 )
 
-func _TestValidate(t *testing.T) {
+func TestValidate(t *testing.T) {
 
-	file, err := os.Open("strategies.txt")
-	if err != nil {
-		t.Errorf("Can't open strategies.txt file")
-		return
-	}
+	file, err := os.Open("testdata\\strategies.txt")
+	assert.Nil(t, err, "Can't open strategies.txt file")
 
 	defer file.Close()
 
@@ -69,7 +66,7 @@ func TestValidateCLIStrategyStringValid(t *testing.T) {
 
 	defer func() { cli.OsExiter = fakeOsExiter }()
 
-	args := []string{"uh", "validate", "-s", "[TCP:flags:PA]-fragment{tcp:-1:True}-| \\/"}
+	args := []string{"geneva-cli", "validate", "-s", "[TCP:flags:PA]-fragment{tcp:-1:True}-| \\/"}
 
 	_ = app.Run(args)
 
@@ -94,7 +91,7 @@ func TestValidateCLIStrategyStringInvalid(t *testing.T) {
 	sout := os.Stdout
 	os.Stdout, _ = os.OpenFile(os.DevNull, os.O_WRONLY, 0)
 
-	args := []string{"uh", "validate", "-s", "[TCP:flags:PA]-fragment{sdgdfghdfghjerdastgtcp:-1:True}-| \\/"}
+	args := []string{"geneva-cli", "validate", "-s", "[TCP:flags:PA]-fragment{sdgdfghdfghjerdastgtcp:-1:True}-| \\/"}
 
 	os.Stdout = sout
 
@@ -121,7 +118,7 @@ func TestValidateCLIStrategyFileValid(t *testing.T) {
 	sout := os.Stdout
 	os.Stdout, _ = os.OpenFile(os.DevNull, os.O_WRONLY, 0)
 
-	args := []string{"uh", "validate", "-strategyFile", "s.txt"}
+	args := []string{"geneva-cli", "validate", "-strategyFile", "testdata\\s.txt"}
 
 	os.Stdout = sout
 
@@ -148,7 +145,7 @@ func TestValidateCLIStrategyBulkValid(t *testing.T) {
 
 	sout := os.Stdout
 	os.Stdout, _ = os.OpenFile(os.DevNull, os.O_WRONLY, 0)
-	args := []string{"uh", "validate", "-b", "strategies.txt"}
+	args := []string{"geneva-cli", "validate", "-b", "strategies.txt"}
 
 	_ = app.Run(args)
 

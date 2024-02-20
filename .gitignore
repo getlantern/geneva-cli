@@ -9,3 +9,5 @@ network_adapters.txt
 
 test_out.json
 test_in.json
+proxies*.yaml
+global*.yaml

@@ -19,13 +19,12 @@ var app = &cli.App{
 
 func init() {
 	exPath := getExecPath()
-	os.Chdir(exPath)
 
 	fromFile := func(c *cli.Context) error {
 		fmt.Println(app.Name)
 		fmt.Println(c.String("command"))
 
-		sc, err := getSavedCommands("saved_commands.json")
+		sc, err := getSavedCommands(filepath.Join(exPath, "saved_commands.json"))
 		if err != nil {
 			return cli.Exit(fmt.Sprintf("Could not read command file: %v\n", err), 1)
 		}

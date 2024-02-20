@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -260,6 +261,9 @@ func init() {
 
 func intercept(c *cli.Context) error {
 
+	exPath := getExecPath()
+	commandsFilepath := filepath.Join(exPath, "saved_commands.json")
+
 	checkFlagsMutualEx := func() bool {
 
 		A := c.String("load-command") != ""
@@ -311,7 +315,7 @@ func intercept(c *cli.Context) error {
 			return cli.Exit(errors.New("load-command option only available for running as a service"), 1)
 		}
 
-		sc, err := getSavedCommands("saved_commands.json")
+		sc, err := getSavedCommands(commandsFilepath)
 		if err != nil {
 			return cli.Exit(err, 1)
 		}
@@ -413,14 +417,14 @@ func intercept(c *cli.Context) error {
 	}
 
 	if saveCom := c.String("save-command"); saveCom != "" {
-		sc, err := getSavedCommands("saved_commands.json")
+		sc, err := getSavedCommands(commandsFilepath)
 		if err != nil {
 			return cli.Exit(err, 1)
 		}
 
 		newCommand := Command{Name: saveCom, CmdStr: "intercept", Args: serviceArgs}
 		sc.add(newCommand)
-		sc.save("saved_commands.json")
+		sc.save(commandsFilepath)
 	}
 
 	logger.Infof("outbound \\/ inbound %q", interceptor.Strategy())
