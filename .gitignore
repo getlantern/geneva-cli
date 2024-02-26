@@ -3,6 +3,7 @@
 *.log
 *.sys
 *.dll
+*.pcap
 scratch.*
 network_adapters.txt
 .vscode

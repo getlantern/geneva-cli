@@ -239,6 +239,11 @@ func init() {
 					Usage: "Control the system service",
 				},
 				&cli.StringFlag{
+					Name:  "serviceStartType",
+					Usage: "Start service type. (automatic | manual | disabled) (manual default)",
+					Value: "manual",
+				},
+				&cli.StringFlag{
 					Name:  "load-command",
 					Usage: "For service run only, Run a named command from saved_command.json",
 				},
@@ -279,11 +284,15 @@ func intercept(c *cli.Context) error {
 		return err
 	}
 
+	options := make(service.KeyValue)
+	options["StartType"] = c.String("serviceStartType")
+
 	svcConfig := service.Config{
 		Name:        "geneva-proxy",
 		DisplayName: "Geneva proxy",
 		Description: "Geneva proxy",
 		Arguments:   []string{"intercept", "-strategyFile", "s.txt"},
+		Option:      options,
 	}
 
 	serviceArgs := []string{}
@@ -338,6 +347,7 @@ func intercept(c *cli.Context) error {
 	logger = newLogger(svc)
 
 	if cmd != "" {
+
 		if err := service.Control(svc, cmd); err != nil {
 			logger.Errorf("Valid actions: %s\n", service.ControlAction)
 			return cli.Exit(err, 1)
@@ -346,7 +356,7 @@ func intercept(c *cli.Context) error {
 	}
 
 	if !checkFlagsMutualEx() {
-		return cli.Exit("Load-command, strategy, and strategyFile are mutually exclusive", 2)
+		return cli.Exit("load-command, strategy, and strategyFile are mutually exclusive", 2)
 	}
 
 	var ips []net.IP

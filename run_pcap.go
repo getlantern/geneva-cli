@@ -26,16 +26,24 @@ func init() {
 					Aliases: []string{"f"},
 				},
 				&cli.StringFlag{
-					Name:     "input",
-					Aliases:  []string{"i"},
-					Value:    "input.pcap",
-					Required: true,
+					Name:    "input",
+					Aliases: []string{"i"},
+					Value:   "input.pcap",
 				},
 				&cli.StringFlag{
-					Name:     "output",
-					Aliases:  []string{"o"},
-					Value:    "output.pcap",
-					Required: true,
+					Name:    "output",
+					Aliases: []string{"o"},
+					Value:   "output.pcap",
+				},
+				&cli.StringFlag{
+					Name:    "strategy",
+					Aliases: []string{"s"},
+					Usage:   "A Geneva `STRATEGY` to run through pcap",
+				},
+				&cli.StringFlag{
+					Name:    "strategyFile",
+					Aliases: []string{"sf"},
+					Usage:   "Load Geneva strategy from `FILE`",
 				},
 			},
 			Action: runPcap,
@@ -101,12 +109,38 @@ func NewFlow(pkt gopacket.Packet) *Flow {
 }
 
 func runPcap(c *cli.Context) error {
+
+	if c.String("strategy") != "" && c.String("strategyFile") != "" {
+		return cli.Exit("strategy and strategyFile are mutually exclusive", 2)
+	}
+
 	input := c.String("input")
 	output := c.String("output")
-	strat := c.Args().First()
+	var stratString string
 
-	s, err := geneva.NewStrategy(strat)
+	stratString = c.String("strategy")
+	if stratString == "" {
+		strategyFile := c.String("strategyFile")
+		if strategyFile == "" {
+			errStr := "must provide one of -strategy or -strategyFile"
+			logger.Error(errStr)
+			return cli.Exit(errStr, 1)
+		}
+
+		in, err := os.ReadFile(strategyFile)
+		if err != nil {
+
+			errStr := fmt.Sprintf("cannot open %s: %v", strategyFile, err)
+
+			logger.Error(errStr)
+			return cli.Exit(errStr, 1)
+		}
+		stratString = string(in)
+	}
+
+	strat, err := geneva.NewStrategy(stratString)
 	if err != nil {
+		fmt.Println(strat)
 		return cli.Exit("invalid strategy", 1)
 	}
 
@@ -176,7 +210,7 @@ func runPcap(c *cli.Context) error {
 			pkt.TransportLayer().(*layers.TCP).DstPort,
 			dirString)
 
-		result, err := s.Apply(pkt, dir)
+		result, err := strat.Apply(pkt, dir)
 		if err != nil {
 			return cli.Exit(fmt.Sprintf("error applying strategy: %v", err), 1)
 		}
@@ -189,8 +223,8 @@ func runPcap(c *cli.Context) error {
 				pkt.Metadata().CaptureLength,
 				pkt.Metadata().Length, len(p.Data()))
 
-			if err = w.WritePacket(pkt.Metadata().CaptureInfo, p.Data()); err != nil {
-				fmt.Fprintf(os.Stderr, "error writing packet: %v", err)
+			if err = w.WritePacket(pkt.Metadata().CaptureInfo, pkt.Data()); err != nil {
+				fmt.Fprintf(os.Stderr, "error writing packet: %v\n", err)
 			}
 			outputCount++
 		}

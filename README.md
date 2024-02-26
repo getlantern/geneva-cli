@@ -47,7 +47,9 @@ You can find a list of available interfaces using
 
 You can test or rather verify that the intercept mode is running by simply running it with a validated strategy. The output should show that packets are being rerouted. You can monitor your adapter in [WireShark](https://www.wireshark.org/) and you should notice a huge uptick in packets being sent from your adapter.
 
-You can predict what the wireshark output should look like using the [Geneva documentation](https://github.com/getlantern/geneva?tab=readme-ov-file#strategies-forests-and-action-trees), each strategy will look different. The default strategy will take all incoming tcp packets and split them in half, on wireshark you should twice as many outgoing packets
+You can predict what the wireshark output should look like using the [Geneva documentation](https://github.com/getlantern/geneva?tab=readme-ov-file#strategies-forests-and-action-trees), each strategy will look different. If you take the following strategy and use wireshark or the included pcap function you will notice that outbound [PSH, ACK] packets will be split into two packets. The pcap feature will show exactly which packets split and into how many.
+
+```[TCP:flags:PA]-fragment{tcp:5:True}-| \/```
 
 You can run `go test -v` to run unit tests
 
