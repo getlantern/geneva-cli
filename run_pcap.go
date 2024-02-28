@@ -139,6 +139,7 @@ func runPcap(c *cli.Context) error {
 	}
 
 	strat, err := geneva.NewStrategy(stratString)
+	fmt.Printf("Strategy: %s\n", strat)
 	if err != nil {
 		fmt.Println(strat)
 		return cli.Exit("invalid strategy", 1)

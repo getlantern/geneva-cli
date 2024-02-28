@@ -232,7 +232,7 @@ func init() {
 				},
 				&cli.StringFlag{
 					Name:  "ips",
-					Usage: "comma-separated list of IP:port tuples to proxy",
+					Usage: "Comma-separated list of IP:port tuples to proxy",
 				},
 				&cli.StringFlag{
 					Name:  "service",
