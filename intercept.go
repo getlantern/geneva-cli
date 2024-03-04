@@ -356,7 +356,7 @@ func intercept(c *cli.Context) error {
 	}
 
 	if !checkFlagsMutualEx() {
-		return cli.Exit("load-command, strategy, and strategyFile are mutually exclusive", 2)
+		return cli.Exit("load-command, strategy, and strategyFile are mutually exclusive", 1)
 	}
 
 	var ips []net.IP

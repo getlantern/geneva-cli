@@ -39,17 +39,33 @@ Then you can run the program using
 
 `.\geneva-cli.exe intercept --interface <interface-name> -strategyFile .\s.txt`
 
+or
+
+`.\geneva-cli.exe intercept --interface <interface-name> -strategy "[TCP:flags:PA]-fragment{tcp:-1:True}-| \/"`
+
+[TCP:flags:PA]-fragment{tcp:8:True}(,fragment{tcp:4:True})-| \/
+
+
 You can find a list of available interfaces using
 
 `.\geneva-cli.exe list-adapters`
 
+### How to find strategies
+You can find a list of strategies in strategies.txt or in the [Geneva paper](http://geneva.cs.umd.edu/papers/geneva_ccs19.pdf) on page 9 with tested success rates for China, India, and Kazakhstan.
+
 ## How to test
 
-You can test or rather verify that the intercept mode is running by simply running it with a validated strategy. The output should show that packets are being rerouted. You can monitor your adapter in [WireShark](https://www.wireshark.org/) and you should notice a huge uptick in packets being sent from your adapter.
+You can test or rather verify that the intercept mode is running by simply running it with a validated strategy. The output should show that packets are being rerouted. You can monitor your adapter in [WireShark](https://www.Wireshark.org/) and you should notice a huge uptick in packets being sent from your adapter.
 
-You can predict what the wireshark output should look like using the [Geneva documentation](https://github.com/getlantern/geneva?tab=readme-ov-file#strategies-forests-and-action-trees), each strategy will look different. If you take the following strategy and use wireshark or the included pcap function you will notice that outbound [PSH, ACK] packets will be split into two packets. The pcap feature will show exactly which packets split and into how many.
+You can predict what the Wireshark output should look like using the [Geneva documentation](https://github.com/getlantern/geneva?tab=readme-ov-file#strategies-forests-and-action-trees), each strategy will look different. If you take the following strategy and use Wireshark or the included pcap function you will notice that outbound [PSH, ACK] packets will be split into two packets. The pcap feature will show exactly which packets split and into how many.
 
 ```[TCP:flags:PA]-fragment{tcp:5:True}-| \/```
+
+If you are correlating the include pcap output with Wireshark, the Wireshark numbers packets starting at 1 and not 0
+
+A simple Python 3 script, bulk_pcap.py, has been included to generate output pcap files from strategies.txt. You will need to obtain your own input pcap file using Wireshark's capture feature. The output will be placed in testdata.
+
+bulk_pcap.py takes a single argument, your input pcap file
 
 You can run `go test -v` to run unit tests
 
@@ -71,15 +87,17 @@ While running the service you can check [Event Viewer](https://learn.microsoft.c
 
 ```.\geneva-cli.exe intercept --service stop```
 
-### Uninstall
+### Uninstall``````
 
 ```.\geneva-cli.exe intercept --service uninstall```
 
 ## Notes
 
-This was tested on a 64-bit Windows 10 machine
-Not tested on WSL
-`strategies.txt` contains several validated strategies
+- This was tested on a 64-bit Windows 10 machine
+- Not tested on WSL
+- `strategies.txt` contains several validated strategies
+- Currently only IPv4 and TCP are supported, this may change if the core geneva library adds support for more protocols
+- strategies can trigger on the reserved flags in a TCP packet but this is not well tested and not recommended, modifying these flags is not supported either
 
 ## Help Output
 ```
@@ -90,15 +108,17 @@ USAGE:
    geneva-cli.exe [global options] command [command options] [arguments...]
 
 COMMANDS:
+   dot                  (unavailable on windows) output the strategy graph as an SVG
+   intercept            Run a strategy on live network traffic
+   list-adapters        Lists the available adapters
+   list-saved-commands  Lists the saved-commands
+   load-command         Runs commands from config file
+   run-pcap             Run a PCAP file through a strategy and output the resulting packets in a new PCAP
+   validate             validate that a strategy is well-formed
+   help, h              Shows a list of commands or help for one command
 
-   dot            (unavailable on windows) output the strategy graph 
-   as an SVG
-   intercept      Run a strategy on live network traffic
-   list-adapters  Lists the available adapters
-   run-pcap       Run a PCAP file through a strategy and output the resulting packets in a new PCAP
-   saved-command  Runs commands from config file
-   validate       validate that a strategy is well-formed
-   help, h        Shows a list of commands or help for one command
+GLOBAL OPTIONS:
+   --help, -h  show help (default: false)
 
 GLOBAL OPTIONS:
    --help, -h  show help (default: false)```

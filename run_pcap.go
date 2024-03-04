@@ -111,7 +111,7 @@ func NewFlow(pkt gopacket.Packet) *Flow {
 func runPcap(c *cli.Context) error {
 
 	if c.String("strategy") != "" && c.String("strategyFile") != "" {
-		return cli.Exit("strategy and strategyFile are mutually exclusive", 2)
+		return cli.Exit("strategy and strategyFile are mutually exclusive", 1)
 	}
 
 	input := c.String("input")
@@ -139,9 +139,8 @@ func runPcap(c *cli.Context) error {
 	}
 
 	strat, err := geneva.NewStrategy(stratString)
-	fmt.Printf("Strategy: %s\n", strat)
 	if err != nil {
-		fmt.Println(strat)
+		fmt.Printf("invalid strategy: %s", err)
 		return cli.Exit("invalid strategy", 1)
 	}
 

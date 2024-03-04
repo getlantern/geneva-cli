@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/Crosse/godivert v0.0.0-20220114171035-c28a0cd613c8
 	github.com/getlantern/common v1.1.1
-	github.com/getlantern/geneva v0.0.0-20240227212146-999775374de7
+	github.com/getlantern/geneva v0.0.0-20240302000214-4935a8c2eb56
 	github.com/getlantern/rot13 v0.0.0-20220822172233-370767b2f782
 	github.com/getlantern/yaml v0.0.0-20140912054538-97d86b60f57e
 	github.com/goccy/go-graphviz v0.1.2
