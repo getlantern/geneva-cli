@@ -46,7 +46,6 @@
 [TCP:options-eol:]-tamper{TCP:window:corrupt}-| \/
 [TCP:options-uto:]-tamper{TCP:options-altchksum:replace:90}(duplicate(tamper{TCP:options-sack:replace:},),)-| \/
 [TCP:options-altchksumopt:]-tamper{TCP:options-uto:replace:}(tamper{TCP:load:corrupt}(fragment{tcp:-1:True}(,drop),),)-| \/
-[TCP:options-nop:]-tamper{TCP:load:replace:}(tamper{TCP:reserved:corrupt}(tamper{TCP:options-sackok:corrupt},),)-| \/
 [TCP:options-altchksumopt:]-fragment{tcp:-1:False}(drop,duplicate)-| \/
 [TCP:options-sack:]-fragment{tcp:-1:True}(,tamper{TCP:reserved:replace:1})-| \/
 [TCP:options-eol:]-tamper{TCP:urgptr:corrupt}(duplicate,)-| \/
