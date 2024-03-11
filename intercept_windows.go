@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
-	"os"
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 	"unsafe"
 
 	"github.com/Crosse/godivert"
@@ -88,14 +88,14 @@ func (p *interceptor) Intercept() error {
 
 	logger.Infof("using filter %q\n", filter)
 
-	ex, err := os.Executable()
+	exPath, err := getExecPath()
+
 	if err != nil {
-		return fmt.Errorf("can't locate dll")
+		return fmt.Errorf("could not locate path at DLL: %v", err)
 	}
-	exPath := filepath.Dir(ex)
+
 	dll64 := filepath.Join(exPath, "WinDivert64.dll")
 	dll32 := filepath.Join(exPath, "WinDivert32.dll")
-
 	logger.Info("opening handle to WinDivert")
 	godivert.LoadDLL(dll64, dll32)
 
@@ -181,6 +181,12 @@ func (p *interceptor) processPacket(winDivert *godivert.WinDivertHandle, pkt *go
 				Data:      pkt.Addr.Data,
 			},
 			PacketLen: uint(len(packet.Data())),
+		}
+
+		wat := time.Now()
+		if len(results) > 1 && p.verbose {
+			logger.Infof("Sent packet of length %v, TS: %v\n", newPkt.PacketLen, wat)
+			logger.Info(newPkt.String())
 		}
 
 		newPkt.VerifyParsed()

@@ -18,9 +18,15 @@ var app = &cli.App{
 }
 
 func init() {
-	exPath := getExecPath()
 
 	fromFile := func(c *cli.Context) error {
+
+		exPath, err := getExecPath()
+
+		if err != nil {
+			return cli.Exit(fmt.Sprintf("Could not obtain exec path: %v\n", err), 1)
+		}
+
 		fmt.Println(app.Name)
 		fmt.Println(c.String("command"))
 
@@ -75,12 +81,11 @@ func main() {
 	}
 }
 
-func getExecPath() string {
+func getExecPath() (string, error) {
 	ex, err := os.Executable()
 	if err != nil {
-		fmt.Println(err)
-		return ""
+		return "", err
 	}
 	exPath := filepath.Dir(ex)
-	return exPath
+	return exPath, nil
 }

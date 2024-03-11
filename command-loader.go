@@ -46,7 +46,6 @@ func getSavedCommands(commandFilepath string) (*savedCommands, error) {
 	err = json.Unmarshal(data, &savedComs)
 
 	if err != nil {
-		fmt.Println(err)
 		return new(savedCommands), err
 	}
 	return savedComs, nil
