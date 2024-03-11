@@ -18,7 +18,7 @@ func init() {
 	app.Commands = append(app.Commands,
 		&cli.Command{
 			Name:  "run-pcap",
-			Usage: "Run a PCAP file through a strategy and output the resulting packets in a new PCAP",
+			Usage: "Run a PCAP file through a strategy and output the resulting packets in a new PCAP file",
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
 					Name:    "force",
@@ -44,6 +44,11 @@ func init() {
 					Name:    "strategyFile",
 					Aliases: []string{"sf"},
 					Usage:   "Load Geneva strategy from `FILE`",
+				}, &cli.BoolFlag{
+					Name:    "verbose",
+					Aliases: []string{"v"},
+					Usage:   "Verbose Logging, default false",
+					Value:   false,
 				},
 			},
 			Action: runPcap,
@@ -222,6 +227,9 @@ func runPcap(c *cli.Context) error {
 				i,
 				pkt.Metadata().CaptureLength,
 				pkt.Metadata().Length, len(p.Data()))
+			if c.Bool("verbose") {
+				fmt.Println(p.String())
+			}
 
 			if err = w.WritePacket(pkt.Metadata().CaptureInfo, pkt.Data()); err != nil {
 				fmt.Fprintf(os.Stderr, "error writing packet: %v\n", err)

@@ -121,6 +121,7 @@ type Interceptor interface {
 	SetProxyIPs([]net.IP)
 	SetStrategy(strategy string) error
 	Strategy() strategy.Strategy
+	SetVerbose(value bool)
 
 	service.Interface
 }
@@ -133,10 +134,16 @@ type interceptor struct {
 	iface      string
 	ips        []net.IP
 	statistics Statistics
+
+	verbose bool
 }
 
 func (i *interceptor) SetProxyIPs(ips []net.IP) {
 	i.ips = ips
+}
+
+func (i *interceptor) SetVerbose(value bool) {
+	i.verbose = value
 }
 
 func (i *interceptor) SetStrategy(strat string) error {
@@ -250,6 +257,11 @@ func init() {
 				&cli.StringFlag{
 					Name:  "save-command",
 					Usage: "Save and give a name to the command used to saved_command.json",
+				}, &cli.BoolFlag{
+					Name:    "verbose",
+					Aliases: []string{"v"},
+					Usage:   "Verbose Logging, default false",
+					Value:   false,
 				},
 			},
 			Action: intercept,
@@ -266,7 +278,11 @@ func init() {
 
 func intercept(c *cli.Context) error {
 
-	exPath := getExecPath()
+	exPath, err := getExecPath()
+
+	if err != nil {
+		return cli.Exit(fmt.Sprintf("Could not obtain exec path: %v\n", err), 1)
+	}
 	commandsFilepath := filepath.Join(exPath, "saved_commands.json")
 
 	checkFlagsMutualEx := func() bool {
@@ -291,11 +307,11 @@ func intercept(c *cli.Context) error {
 		Name:        "geneva-proxy",
 		DisplayName: "Geneva proxy",
 		Description: "Geneva proxy",
-		Arguments:   []string{"intercept", "-strategyFile", "s.txt"},
+		Arguments:   []string{"intercept", "-strategy", "[TCP:flags:PA]-fragment{tcp:5:True}-| \\/", "-interface", "Ethernet"},
 		Option:      options,
 	}
 
-	serviceArgs := []string{}
+	serviceArgs := []string{"intercept"}
 
 	toAdd := func(name string) bool {
 		switch name {
@@ -308,15 +324,17 @@ func intercept(c *cli.Context) error {
 	for _, v := range c.FlagNames() {
 
 		if toAdd(v) && len(v) > 1 {
-			serviceArgs = append(serviceArgs, v)
+			serviceArgs = append(serviceArgs, fmt.Sprintf("-%v", v))
 			serviceArgs = append(serviceArgs, c.String(v))
 		}
 	}
 
 	cmd := c.String("service")
-	if len(serviceArgs) > 0 && cmd != "" {
+	if len(serviceArgs) > 1 && cmd != "" {
 		svcConfig.Arguments = serviceArgs
 	}
+
+	interceptor.SetVerbose(c.Bool("verbose"))
 
 	if loadCom := c.String("load-command"); loadCom != "" {
 

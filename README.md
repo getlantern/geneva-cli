@@ -22,8 +22,7 @@ First download WinDivert 2.2 [here](https://www.reqrypt.org/windivert.html) and 
 - x64/WinDivert64.sys
 - x64/WinDivert.dll
 
-Rename the x86 dll to WinDivert32.dll
-Rename the x64 dll to WinDivert64.dll
+Rename the x86 dll to WinDivert32.dll and the x64 dll to WinDivert64.dll.
 
 `go build`
 
@@ -33,7 +32,7 @@ This will allow you to call with just geneva-cli instead of .\geneva-cli.exe fro
 Any filepaths you paths should be absolute paths, the working directory will be changed to the executable directory.
 
 ## How to run
-First you will need a valid Geneva strategy, one is included in s.txt.
+First you will need a valid Geneva strategy, an straightforward one is included in s.txt. Strategies.txt contains many strategies for you to use.
 
 Then you can run the program using
 
@@ -42,9 +41,6 @@ Then you can run the program using
 or
 
 `.\geneva-cli.exe intercept --interface <interface-name> -strategy "[TCP:flags:PA]-fragment{tcp:-1:True}-| \/"`
-
-[TCP:flags:PA]-fragment{tcp:8:True}(,fragment{tcp:4:True})-| \/
-
 
 You can find a list of available interfaces using
 
@@ -55,19 +51,19 @@ You can find a list of strategies in strategies.txt or in the [Geneva paper](htt
 
 ## How to test
 
-You can test or rather verify that the intercept mode is running by simply running it with a validated strategy. The output should show that packets are being rerouted. You can monitor your adapter in [WireShark](https://www.Wireshark.org/) and you should notice a huge uptick in packets being sent from your adapter.
+You can test or rather verify that the intercept mode is running by simply running it with a validated strategy. The output should show that packets are being rerouted. You can monitor your adapter in [WireShark](https://www.wireshark.org/) and you should notice a huge uptick in packets being sent from your adapter.
 
 You can predict what the Wireshark output should look like using the [Geneva documentation](https://github.com/getlantern/geneva?tab=readme-ov-file#strategies-forests-and-action-trees), each strategy will look different. If you take the following strategy and use Wireshark or the included pcap function you will notice that outbound [PSH, ACK] packets will be split into two packets. The pcap feature will show exactly which packets split and into how many.
 
 ```[TCP:flags:PA]-fragment{tcp:5:True}-| \/```
 
-If you are correlating the include pcap output with Wireshark, the Wireshark numbers packets starting at 1 and not 0
+If you are correlating the include pcap output with Wireshark, be aware that Wireshark numbers packets start at 1 and not 0.
 
-A simple Python 3 script, bulk_pcap.py, has been included to generate output pcap files from strategies.txt. You will need to obtain your own input pcap file using Wireshark's capture feature. The output will be placed in testdata.
+A simple Python 3 script, bulk_pcap.py, has been included to generate output pcap files from strategies.txt. You will need to obtain your own input pcap file using Wireshark's capture feature. The output will be placed in testdata. Tested with Python 3.12
 
-bulk_pcap.py takes a single argument, your input pcap file
+bulk_pcap.py takes a single argument, your input pcap file.
 
-You can run `go test -v` to run unit tests
+You can run `go test -v` to run unit tests.
 
 ## How to install as service
 
@@ -75,19 +71,23 @@ Open PowerShell in administrator mode before running any commands
 
 ### Install Command, in manual mode
 
-```.\geneva-cli.exe intercept --service install```
+```.\geneva-cli.exe intercept --service install --strategyFile <path_to_file> --adapter <adapter_name>```
+
+AT this time you must specify the parameters at service installation.
+
+You can specify a strategy, strategy file, a saved command, or nothing to let it run from the default strategy (`s.txt`)
+While running the service you can check [Event Viewer](https://learn.microsoft.com/en-us/shows/inside/event-viewer) for output.
+
+You can obtain a list of adapters using the list-adapters command
 
 ### Start
-
-```.\geneva-cli.exe intercept --service start --strategyFile <path_to_file>```
-You can specify a strategy, strategy file, a saved command, or nothing to let it run from the default strategy (`s.txt`)
-While running the service you can check [Event Viewer](https://learn.microsoft.com/en-us/shows/inside/event-viewer) for output
+```.\geneva-cli.exe intercept --service start```
 
 ### Stop
 
 ```.\geneva-cli.exe intercept --service stop```
 
-### Uninstall``````
+### Uninstall
 
 ```.\geneva-cli.exe intercept --service uninstall```
 

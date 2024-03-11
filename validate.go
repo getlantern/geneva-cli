@@ -38,8 +38,17 @@ func init() {
 
 func validateFromCLI(c *cli.Context) error {
 
+	checkFlagsMutualEx := func() bool {
+
+		A := c.String("bulkFile") != ""
+		B := c.String("strategy") != ""
+		C := c.String("strategyFile") != ""
+
+		return !A && !B && C || A && !B && !C || !A && B && !C
+	}
+
 	// command-line options can override some of flashlight's config
-	if c.String("strategy") != "" && c.String("strategyFile") != "" && c.String("bulkFile") != "" {
+	if checkFlagsMutualEx() {
 		return cli.Exit("Only one of -strategy, -strategyFile, or -bulkFile should be used", 1)
 	}
 
@@ -60,8 +69,6 @@ func validateFromCLI(c *cli.Context) error {
 			return cli.Exit(fmt.Sprintf("cannot open %s: %v", s, err), 1)
 		}
 		s = string(in)
-		fmt.Println(s)
-
 		err = validate(s)
 
 		if err != nil {

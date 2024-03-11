@@ -25,7 +25,7 @@ func TestSaveCommands(t *testing.T) {
 
 	saveFile := filepath.Join("testdata", "test_out.json")
 
-	if _, err := os.Stat(saveFile); errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(saveFile); errors.Is(err, nil) {
 		os.Remove(saveFile)
 	}
 
@@ -38,18 +38,31 @@ func TestSaveCommands(t *testing.T) {
 	sc.add(two)
 
 	err := sc.save(saveFile)
+	assert.NoError(t, err)
+
+	_, err = os.Stat(saveFile)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(sc.Items))
+
+	sc_in, err := getSavedCommands(saveFile)
 	assert.Nil(t, err)
 
-	if _, err := os.Stat(saveFile); errors.Is(err, os.ErrNotExist) {
-		assert.Nil(t, err)
-	}
-	assert.Equal(t, 2, len(sc.Items))
+	assert.Equal(t, sc, sc_in)
+	ret, err := sc_in.get("One")
+
+	assert.Nil(t, err)
+	assert.Equal(t, one, ret)
+
+	ret2, err2 := sc_in.get("Two")
+	assert.Nil(t, err2)
+	assert.Equal(t, two, ret2)
+
 }
 
 func TestLoadCommands(t *testing.T) {
 	saveFile := filepath.Join("testdata", "test_in.json")
 
-	if _, err := os.Stat(saveFile); errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(saveFile); errors.Is(err, nil) {
 		os.Remove(saveFile)
 	}
 
@@ -72,4 +85,9 @@ func TestLoadCommands(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, one, ret)
+
+	ret2, err2 := sc_in.get("Two")
+	assert.Nil(t, err2)
+	assert.Equal(t, two, ret2)
+
 }

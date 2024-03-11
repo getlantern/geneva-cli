@@ -1,9 +1,22 @@
+#!/usr/bin/env python3
+
 import os
 import subprocess
 import json
 import sys
 
 from pathlib import Path
+
+help_line = """
+This script applies the strategies contained in strategies.txt to an inputted PCAP file.
+
+Call using Python 3, tested on 3.12
+python bulk_pcap.py <input_pcap>` > out.log
+
+Output PCAP files can be found in testdata/pcap_output and are numbered in order they appear in strategies.txt
+
+"""
+
 
 def main():
 
@@ -12,12 +25,12 @@ def main():
 
     if len(sys.argv) < 2:
         print('No input file given')
+        print(help_line)
         exit(1)
 
     input_file = sys.argv[1]
     strat_file = script_dir / 'strategies.txt'
     output_dir = script_dir / 'testdata/pcap_output'
-    log_file = script_dir / 'testdata/log.txt'
     map_file = output_dir / 'map_file.json'
     
     run_results = {'good':{}, 'bad':{}}
@@ -54,3 +67,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    
