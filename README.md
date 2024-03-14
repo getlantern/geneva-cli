@@ -98,6 +98,7 @@ You can obtain a list of adapters using the list-adapters command
 - `strategies.txt` contains several validated strategies
 - Currently only IPv4 and TCP are supported, this may change if the core geneva library adds support for more protocols
 - strategies can trigger on the reserved flags in a TCP packet but this is not well tested and not recommended, modifying these flags is not supported either
+-It is strong recommended that you use the run-pcap option on a strategy and test data that you captured first and compare it to intercept output captured via Wireshark and make sure they match. If there is a discrepancy please open an issue on github.
 
 ## Help Output
 ```
