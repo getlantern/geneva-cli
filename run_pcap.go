@@ -228,7 +228,7 @@ func runPcap(c *cli.Context) error {
 				pkt.Metadata().CaptureLength,
 				pkt.Metadata().Length, len(p.Data()))
 			if c.Bool("verbose") {
-				fmt.Println(p.String())
+				fmt.Println(p)
 			}
 
 			if err = w.WritePacket(pkt.Metadata().CaptureInfo, pkt.Data()); err != nil {

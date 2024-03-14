@@ -10,6 +10,8 @@ import (
 	"time"
 	"unsafe"
 
+	"bytes"
+
 	"github.com/Crosse/godivert"
 	"github.com/getlantern/geneva/strategy"
 	"github.com/google/gopacket"
@@ -184,18 +186,25 @@ func (p *interceptor) processPacket(winDivert *godivert.WinDivertHandle, pkt *go
 		}
 
 		wat := time.Now()
-		if len(results) > 1 && p.verbose {
-			logger.Infof("Sent packet of length %v, TS: %v\n", newPkt.PacketLen, wat)
-			logger.Info(newPkt.String())
-		}
-
 		newPkt.VerifyParsed()
+
+		if len(results) > 1 && p.verbose {
+			if bytes.Equal(packet.Data(), newPkt.Raw) {
+				logger.Info("packets are fine")
+			} else {
+				logger.Error("packets fucked up")
+			}
+
+			logger.Infof("DATA ADDRESS: %p", packet.Data())
+			logger.Infof("Sent packet of length %v, TS: %v\n", newPkt.PacketLen, wat)
+			logger.Info(newPkt)
+			logger.Info(packet)
+		}
 
 		if err = sendPacket(winDivert, &newPkt, dir, &p.statistics); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
