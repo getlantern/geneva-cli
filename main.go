@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,61 +17,32 @@ var app = &cli.App{
 	Commands:               make([]*cli.Command, 0, 4),
 }
 
-type Command struct {
-	Name   string   `json:"name"`
-	CmdStr string   `json:"command"`
-	Args   []string `json:"args"`
-}
-
-type savedCommands struct {
-	Items []Command `json:"saved commands"`
-}
-
 func init() {
+
 	fromFile := func(c *cli.Context) error {
+
+		exPath, err := getExecPath()
+
+		if err != nil {
+			return cli.Exit(fmt.Sprintf("Could not obtain exec path: %v\n", err), 1)
+		}
+
 		fmt.Println(app.Name)
 		fmt.Println(c.String("command"))
 
-		ex, err := os.Executable()
+		sc, err := getSavedCommands(filepath.Join(exPath, "saved_commands.json"))
 		if err != nil {
-			fmt.Println(err)
-			return err
-		}
-		exPath := filepath.Dir(ex)
-
-		var savedComs savedCommands
-		data, err := os.ReadFile(filepath.Join(exPath, "saved_commands.json"))
-		if err != nil {
-			fmt.Println(err)
-			return err
+			return cli.Exit(fmt.Sprintf("Could not read command file: %v\n", err), 1)
 		}
 
-		err = json.Unmarshal(data, &savedComs)
-
-		if err != nil {
-			// print out if error is not nil
-			fmt.Println(err)
-		}
-
-		index := -1
 		desiredCom := c.String("command")
 
-		for i, s := range savedComs.Items {
-			fmt.Println(i)
-			fmt.Println(s.Name)
-			if s.Name == desiredCom {
-				index = i
-			}
-		}
-
-		if index < 0 {
+		chosenCommand, err := sc.get(desiredCom)
+		if err != nil {
 			fmt.Printf("Stored command named %s is not found", desiredCom)
 			return nil
 		}
 
-		chosenCommand := savedComs.Items[index]
-
-		// fmt.Println(commands)
 		realArgs := append([]string{os.Args[0], chosenCommand.CmdStr}, chosenCommand.Args...)
 		fmt.Println(realArgs)
 
@@ -82,14 +52,7 @@ func init() {
 	}
 
 	app.Commands = append(app.Commands, &cli.Command{
-		Name:   "list-adapters",
-		Usage:  "Lists the available adapters",
-		Action: listAdaptersWrapper,
-		Flags:  []cli.Flag{},
-	})
-
-	app.Commands = append(app.Commands, &cli.Command{
-		Name:   "saved-command",
+		Name:   "load-command",
 		Usage:  "Runs commands from config file",
 		Action: fromFile,
 		Flags: []cli.Flag{
@@ -116,4 +79,13 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 	}
+}
+
+func getExecPath() (string, error) {
+	ex, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	exPath := filepath.Dir(ex)
+	return exPath, nil
 }

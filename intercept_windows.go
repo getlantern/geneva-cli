@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
-	"os"
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 	"unsafe"
+
+	"bytes"
 
 	"github.com/Crosse/godivert"
 	"github.com/getlantern/geneva/strategy"
@@ -40,6 +42,7 @@ func init() {
 	if err := iphlpapi.Load(); err != nil {
 		panic(fmt.Errorf("error loading Iphlpapi.dll"))
 	}
+
 }
 
 func NewInterceptor(iface string) (Interceptor, error) {
@@ -87,14 +90,14 @@ func (p *interceptor) Intercept() error {
 
 	logger.Infof("using filter %q\n", filter)
 
-	ex, err := os.Executable()
+	exPath, err := getExecPath()
+
 	if err != nil {
-		return fmt.Errorf("Can't locate dll location")
+		return fmt.Errorf("could not locate path at DLL: %v", err)
 	}
-	exPath := filepath.Dir(ex)
+
 	dll64 := filepath.Join(exPath, "WinDivert64.dll")
 	dll32 := filepath.Join(exPath, "WinDivert32.dll")
-
 	logger.Info("opening handle to WinDivert")
 	godivert.LoadDLL(dll64, dll32)
 
@@ -112,13 +115,13 @@ func (p *interceptor) Intercept() error {
 		logger.Info("closing WinDivert handle")
 
 		if err := winDivert.Close(); err != nil {
-			logger.Infof("error closing WinDivert handle: %v\n", err)
+			logger.Infof("error closing WinDivert handle: %v", err)
 		}
 	}()
 
 	packetChan, err := winDivert.Packets()
 	if err != nil {
-		return fmt.Errorf("error getting packets: %v\n", err)
+		return fmt.Errorf("error getting packets: %v", err)
 	}
 
 	for {
@@ -164,11 +167,11 @@ func (p *interceptor) processPacket(winDivert *godivert.WinDivertHandle, pkt *go
 	if err != nil {
 		p.statistics.Increment(Errors, dir)
 		p.statistics.Increment(Injected, dir)
-		if err2 := sendPacket(winDivert, pkt, dir, &p.statistics); err != nil {
-			return fmt.Errorf("failed to send packet after error applying strategy: %w", err2)
+		if err2 := sendPacket(winDivert, pkt, dir, &p.statistics); err2 != nil {
+			return fmt.Errorf("failed to send packet after error applying strategy: %v", err2)
 		}
 
-		return fmt.Errorf("error applying strategy: %v\n", err)
+		return fmt.Errorf("error applying strategy: %v", err)
 	}
 
 	for i, packet := range results {
@@ -182,13 +185,20 @@ func (p *interceptor) processPacket(winDivert *godivert.WinDivertHandle, pkt *go
 			PacketLen: uint(len(packet.Data())),
 		}
 
+		wat := time.Now()
 		newPkt.VerifyParsed()
+
+		if len(results) > 1 && p.verbose {
+			logger.Infof("DATA ADDRESS: %p", packet.Data())
+			logger.Infof("Sent packet of length %v, TS: %v\n", newPkt.PacketLen, wat)
+			logger.Info(newPkt)
+			logger.Info(packet)
+		}
 
 		if err = sendPacket(winDivert, &newPkt, dir, &p.statistics); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -215,7 +225,7 @@ func now() int64 {
 
 func getAdapter(iface string) (uint32, error) {
 	// https://docs.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-getadaptersaddresses
-	// "The recommended method of calling the GetAi daptersAddresses function is to pre-allocate a
+	// "The recommended method of calling the GetAi adaptersAddresses function is to pre-allocate a
 	// 15KB working buffer pointed to by the AdapterAddresses parameter. On typical computers,
 	// this dramatically reduces the chances that the GetAdaptersAddresses function returns
 	// ERROR_BUFFER_OVERFLOW, which would require calling GetAdaptersAddresses function multiple
@@ -234,8 +244,6 @@ func getAdapter(iface string) (uint32, error) {
 
 	a := &info[0]
 	for a != nil {
-		// fmt.Println(windows.BytePtrToString(a.AdapterName))
-		// fmt.Println(windows.UTF16PtrToString(a.FriendlyName))
 		if windows.BytePtrToString(a.AdapterName) == iface ||
 			windows.UTF16PtrToString(a.FriendlyName) == iface {
 			return a.IfIndex, nil

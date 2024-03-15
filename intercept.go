@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -11,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlantern/appdir"
 	"github.com/getlantern/common"
 	"github.com/getlantern/geneva"
 	"github.com/getlantern/geneva/strategy"
@@ -76,7 +76,7 @@ func (l *myLog) Errorf(format string, a ...interface{}) {
 var logger *myLog
 
 const (
-	LOG_FILE                = `geneva-proxy.log`
+	LOG_FILE                = "/geneva-proxy.log"
 	STATISTICS_INTERVAL_CLI = 5
 	STATISTICS_INTERVAL_SVC = 300
 )
@@ -121,6 +121,7 @@ type Interceptor interface {
 	SetProxyIPs([]net.IP)
 	SetStrategy(strategy string) error
 	Strategy() strategy.Strategy
+	SetVerbose(value bool)
 
 	service.Interface
 }
@@ -133,10 +134,16 @@ type interceptor struct {
 	iface      string
 	ips        []net.IP
 	statistics Statistics
+
+	verbose bool
 }
 
 func (i *interceptor) SetProxyIPs(ips []net.IP) {
 	i.ips = ips
+}
+
+func (i *interceptor) SetVerbose(value bool) {
+	i.verbose = value
 }
 
 func (i *interceptor) SetStrategy(strat string) error {
@@ -217,12 +224,13 @@ func init() {
 					Usage:   "A Geneva `STRATEGY` to run",
 				},
 				&cli.StringFlag{
-					Name:  "strategyFile",
-					Usage: "Load Geneva strategy from `FILE`",
+					Name:    "strategyFile",
+					Aliases: []string{"f"},
+					Usage:   "Load Geneva strategy from `FILE`",
 				},
-				&cli.BoolFlag{
+				&cli.StringFlag{
 					Name:  "fromFlashlight",
-					Usage: "Load strategy and endpoint information from flashlight's proxies.yaml file (overrides other options)",
+					Usage: "Load strategy and endpoint information from a given flashlight proxies.yaml file (overrides other options)",
 				},
 				&cli.StringFlag{
 					Name:    "interface",
@@ -231,51 +239,151 @@ func init() {
 				},
 				&cli.StringFlag{
 					Name:  "ips",
-					Usage: "comma-separated list of IP:port tuples to proxy",
+					Usage: "Comma-separated list of IP:port tuples to proxy",
 				},
 				&cli.StringFlag{
 					Name:  "service",
 					Usage: "Control the system service",
 				},
+				&cli.StringFlag{
+					Name:  "serviceStartType",
+					Usage: "Start service type. (automatic | manual | disabled) (manual default)",
+					Value: "manual",
+				},
+				&cli.StringFlag{
+					Name:  "load-command",
+					Usage: "For service run only, Run a named command from saved_command.json",
+				},
+				&cli.StringFlag{
+					Name:  "save-command",
+					Usage: "Save and give a name to the command used to saved_command.json",
+				}, &cli.BoolFlag{
+					Name:    "verbose",
+					Aliases: []string{"v"},
+					Usage:   "Verbose Logging, default false",
+					Value:   false,
+				},
 			},
 			Action: intercept,
 		})
 
+	app.Commands = append(app.Commands, &cli.Command{
+		Name:   "list-adapters",
+		Usage:  "Lists the available adapters",
+		Action: listAdaptersWrapper,
+		Flags:  []cli.Flag{},
+	})
+
 }
 
 func intercept(c *cli.Context) error {
+
+	exPath, err := getExecPath()
+
+	if err != nil {
+		return cli.Exit(fmt.Sprintf("Could not obtain exec path: %v\n", err), 1)
+	}
+	commandsFilepath := filepath.Join(exPath, "saved_commands.json")
+
+	checkFlagsMutualEx := func() bool {
+
+		A := c.String("load-command") != ""
+		B := c.String("strategy") != ""
+		C := c.String("strategyFile") != ""
+
+		return !A && !B && C || A && !B && !C || !A && B && !C
+
+	}
+
 	interceptor, err := NewInterceptor(c.String("interface"))
 	if err != nil {
 		return err
 	}
 
+	options := make(service.KeyValue)
+	options["StartType"] = c.String("serviceStartType")
+
 	svcConfig := service.Config{
 		Name:        "geneva-proxy",
 		DisplayName: "Geneva proxy",
 		Description: "Geneva proxy",
-		Arguments:   []string{"intercept", "--strategyFile", `strategy.txt`, "--fromFlashlight"},
+		Arguments:   []string{"intercept", "-strategy", "[TCP:flags:PA]-fragment{tcp:5:True}-| \\/", "-interface", "Ethernet"},
+		Option:      options,
+	}
+
+	serviceArgs := []string{"intercept"}
+
+	toAdd := func(name string) bool {
+		switch name {
+		case "service", "load-command", "save-command":
+			return false
+		}
+		return true
+	}
+
+	for _, v := range c.FlagNames() {
+
+		if toAdd(v) && len(v) > 1 {
+			serviceArgs = append(serviceArgs, fmt.Sprintf("-%v", v))
+			serviceArgs = append(serviceArgs, c.String(v))
+		}
+	}
+
+	cmd := c.String("service")
+	if len(serviceArgs) > 1 && cmd != "" {
+		svcConfig.Arguments = serviceArgs
+	}
+
+	interceptor.SetVerbose(c.Bool("verbose"))
+
+	if loadCom := c.String("load-command"); loadCom != "" {
+
+		if c.String("service") == "" {
+			return cli.Exit(errors.New("load-command option only available for running as a service"), 1)
+		}
+
+		sc, err := getSavedCommands(commandsFilepath)
+		if err != nil {
+			return cli.Exit(err, 1)
+		}
+
+		com, err := sc.get(loadCom)
+		if err != nil {
+			return cli.Exit(err, 1)
+		}
+		if com.CmdStr != "intercept" {
+			return cli.Exit(errors.New("only run intercept command as service"), 1)
+		}
+		svcConfig.Arguments = com.Args
+
 	}
 
 	svc, err := service.New(interceptor, &svcConfig)
 	if err != nil {
 		return cli.Exit(err, 1)
 	}
+	logger = newLogger(svc)
 
-	if cmd := c.String("service"); cmd != "" {
+	if cmd != "" {
+
 		if err := service.Control(svc, cmd); err != nil {
-			// logger.Errorf("valid actions: %q\n", service.ControlAction)
+			logger.Errorf("Valid actions: %s\n", service.ControlAction)
 			return cli.Exit(err, 1)
 		}
 		return nil
 	}
 
-	logger = newLogger(svc)
+	if !checkFlagsMutualEx() {
+		return cli.Exit("load-command, strategy, and strategyFile are mutually exclusive", 1)
+	}
 
 	var ips []net.IP
 	var strat string
 
-	if c.Bool("fromFlashlight") {
-		ips, strat, err = parseProxyFile()
+	flashPath := c.String("fromFlashlight")
+
+	if flashPath != "" {
+		ips, strat, err = parseProxyFile(flashPath)
 		if err != nil {
 			logger.Errorf("error parsing proxies.yaml: %v\n", err)
 			return cli.Exit(err, 1)
@@ -283,6 +391,7 @@ func intercept(c *cli.Context) error {
 		interceptor.SetProxyIPs(ips)
 
 		logger.Info("parsed proxies.yaml\n")
+
 	}
 
 	// command-line options can override some of flashlight's config
@@ -294,18 +403,24 @@ func intercept(c *cli.Context) error {
 	if s == "" {
 		strategyFile := c.String("strategyFile")
 		if strategyFile == "" {
-			return cli.Exit("must provide one of -strategy or -strategyFile", 1)
+			errStr := "must provide one of -strategy or -strategyFile"
+			logger.Error(errStr)
+			return cli.Exit(errStr, 1)
 		}
 
 		in, err := os.ReadFile(strategyFile)
 		if err != nil {
-			return cli.Exit(fmt.Sprintf("cannot open %s: %v", strategyFile, err), 1)
+
+			errStr := fmt.Sprintf("cannot open %s: %v", strategyFile, err)
+
+			logger.Error(errStr)
+			return cli.Exit(errStr, 1)
 		}
 		s = string(in)
 	}
 
 	if s != "" {
-		if strat != "" && c.Bool("fromFlashlight") {
+		if strat != "" && flashPath != "" {
 			logger.Info("overriding strategy from proxies.yaml with command-line argument")
 		}
 		strat = s
@@ -313,12 +428,13 @@ func intercept(c *cli.Context) error {
 
 	interceptor.SetStrategy(strat)
 	if err != nil {
+		logger.Errorf("Can't set strat %s", strat)
 		return cli.Exit(err, 1)
 	}
 
 	ipsFromArgs := strings.Split(c.String("ips"), ",")
 	if len(ipsFromArgs) > 0 {
-		if c.Bool("fromFlashlight") {
+		if flashPath != "" {
 			logger.Info("appending IPs from command line to list from proxies.yaml")
 		}
 
@@ -328,19 +444,30 @@ func intercept(c *cli.Context) error {
 		interceptor.SetProxyIPs(ips)
 	}
 
-	logger.Infof(`outbound \/ inbound %q`, interceptor.Strategy())
+	if saveCom := c.String("save-command"); saveCom != "" {
+		sc, err := getSavedCommands(commandsFilepath)
+		if err != nil {
+			return cli.Exit(err, 1)
+		}
+
+		newCommand := Command{Name: saveCom, CmdStr: "intercept", Args: serviceArgs}
+		sc.add(newCommand)
+		sc.save(commandsFilepath)
+	}
+
+	logger.Infof("outbound \\/ inbound %q", interceptor.Strategy())
 
 	err = svc.Run()
 
 	return err
 }
 
-func parseProxyFile() ([]net.IP, string, error) {
+func parseProxyFile(proxiesFilepath string) ([]net.IP, string, error) {
 	ips := make([]net.IP, 0, 4)
 
 	// get the values from proxies.yaml
-	configDir := appdir.General("Lantern")
-	proxiesFile, err := os.Open(filepath.Join(configDir, "proxies.yaml"))
+	proxiesFile, err := os.Open(proxiesFilepath)
+
 	if err != nil {
 		return nil, "", cli.Exit(fmt.Sprintf("cannot open proxies.yaml: %v", err), 1)
 	}
@@ -363,6 +490,7 @@ func parseProxyFile() ([]net.IP, string, error) {
 		case "multiplexed":
 			ips = append(ips, net.ParseIP(v.MultiplexedAddr))
 		default:
+			ips = append(ips, net.ParseIP(v.Addr))
 			logger.Warningf("unhandled transport %q\n", v.Addr)
 		}
 	}

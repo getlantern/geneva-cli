@@ -3,3 +3,15 @@
 *.log
 *.sys
 *.dll
+*.pcap
+*.exe*
+scratch.*
+network_adapters.txt
+.vscode
+
+test_out.json
+test_in.json
+proxies*.yaml
+global*.yaml
+
+.idea*
